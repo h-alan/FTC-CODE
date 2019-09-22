@@ -1,2 +1,2 @@
 # FTC-CODE
-Code of our FTC Robot
+The main branch may never be used
