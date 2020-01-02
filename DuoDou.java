@@ -175,28 +175,28 @@ public class DuoDou extends LinearOpMode {
                 telemetry.addData("Skystone center", "(" + skystones.get(j).x + ", " + skystones.get(j).y + ")");
             }
 
-                // finding stone closesst to camera
-                SkyStone closestStone = null;
-                if(skystones.size() > 1) {
-                    for(int j = 0; j < skystones.size(); j++) {
-                        double closest;
-                        closest = Math.abs(skystones.get(0).x - 300) + Math.abs(skystones.get(0).y - 300);
-                        for(int k = 0; k < skystones.size(); k++) {
-                            if(closest > (Math.abs(skystones.get(k).x - 300) + Math.abs(skystones.get(k).y - 300)));
-                                closestStone = skystones.get(k);
-                        }
+            // finding stone closesst to camera
+            SkyStone closestStone = null;
+            if(skystones.size() > 1) {
+                for(int j = 0; j < skystones.size(); j++) {
+                    double closest;
+                    closest = Math.abs(skystones.get(0).x - 300) + Math.abs(skystones.get(0).y - 300);
+                    for(int k = 0; k < skystones.size(); k++) {
+                        if(closest > (Math.abs(skystones.get(k).x - 300) + Math.abs(skystones.get(k).y - 300)));
+                        closestStone = skystones.get(k);
                     }
                 }
-                else {
-                    closestStone = skystones.get(0);
-                }
+            }
+            else {
+                closestStone = skystones.get(0);
+            }
 
-                telemetry.addData("==========", "Loop delimiter");
-                telemetry.update();
+            telemetry.addData("==========", "Loop delimiter");
+            telemetry.update();
 
-                while(closestStone.x > 310 || closestStone.x < 290) {
-                    goBackward(0.1);
-                }
+            while(closestStone.x > 310 || closestStone.x < 290) {
+                goBackward(0.1);
+            }
 
             rotate(-90, 0.1);
             collect(0.75);
@@ -340,20 +340,36 @@ public class DuoDou extends LinearOpMode {
         sweepRight.setPosition(1);
     }
 
-    public void goForward(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(tgtPower);
+    public void goForward(double tgtPower) { //done?
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(-tgtPower);
         backRight.setPower(-tgtPower);
         backLeft.setPower(tgtPower);
     }
 
-    public void goBackward(double tgtPower) {
-        frontRight.setPower(tgtPower);
-        frontLeft.setPower(-tgtPower);
+    public void goBackward(double tgtPower) { //done
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(tgtPower);
         backRight.setPower(tgtPower);
         backLeft.setPower(-tgtPower);
     }
 
+
+    ////////////////////////////////////////////////
+    public void strafeRight(double tgtPower) {
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(-tgtPower);
+        backLeft.setPower(-tgtPower);
+    }
+
+    public void strafeLeft(double tgtPower) {
+        frontLeft.setPower(tgtPower);
+        frontRight.setPower(tgtPower);
+        backLeft.setPower(tgtPower);
+        backRight.setPower(tgtPower);
+
+    }
 
     public void stopMotors() {
         frontRight.setPower(0);
@@ -363,34 +379,6 @@ public class DuoDou extends LinearOpMode {
         sweepMotorLeft.setPower(0);
         sweepMotorRight.setPower(0);
     }
-
-
-    public void strafeRight(double tgtPower) {
-        frontRight.setPower(tgtPower);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower);
-        backLeft.setPower(-tgtPower);
-    }
-
-    public void strafeLeft(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower);
-        backLeft.setPower(tgtPower);
-    }
-
-    public void turnRight(double angle) {
-
-    }
-
-    public void turnLeft(double tgtPower) {
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(-tgtPower);
-    }
-
-    /*
-    --------------------------------------------------
-     */
 
     public void listhardware() {
         telemetry.setAutoClear(false);
