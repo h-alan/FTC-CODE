@@ -47,7 +47,7 @@ import detectors.FoundationPipeline.Pipeline;
 import detectors.FoundationPipeline.SkyStone;
 import detectors.OpenCvDetector;
 
-@Autonomous(name = "The Three <<Holy Systems>>", group = "Primordial Artifact")
+@Autonomous(name = "The Three <<Holy Systems>>!", group = "Primordial Artifact")
 public class DuoDou extends LinearOpMode {
     // my robot parts
     // motors
@@ -72,9 +72,9 @@ public class DuoDou extends LinearOpMode {
 
     public void runOpMode() throws InterruptedException {
 
-        /*
-        ----------------- hardware setup ----------------------
-         */
+    /*
+    ----------------- hardware setup ----------------------
+    */
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
@@ -94,70 +94,73 @@ public class DuoDou extends LinearOpMode {
 
         telemetry.addData("Booting Up", " . . .");
         telemetry.update();
-        /*
-        ---------------------------------------------------------
-         */
+    /*
+    ---------------------------------------------------------
+     */
 
         OpenCvDetector fieldDetector = new OpenCvDetector(this);
-        //ImageDetector detector = new ImageDetector(this, false);
-        //StoneDetector stone = new StoneDetector(this, false);
-
-        //stone.start();
-        //detector.start();
         fieldDetector.start();
 
-        /*
-        ------------------------IMU SETUP------------------------
-         */
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+    /*
+    //------------------------IMU SETUP------------------------
 
-        parameters.mode = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled = false;
+    BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
-        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
-        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
-        // and named "imu".
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
+    parameters.mode = BNO055IMU.SensorMode.IMU;
+    parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+    parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+    parameters.loggingEnabled = false;
 
-        imu.initialize(parameters);
+    // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+    // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+    // and named "imu".
+    imu = hardwareMap.get(BNO055IMU.class, "imu");
 
-        // caliblrating imu
-        telemetry.addData("Mode", "calibrating...");
-        telemetry.update();
+    imu.initialize(parameters);
 
-        while (!isStopRequested() && !imu.isGyroCalibrated()) {
-            sleep(50);
-            idle();
+    // caliblrating imu
+    telemetry.addData("Mode", "calibrating...");
+    telemetry.update();
+
+    while (!isStopRequested() && !imu.isGyroCalibrated()) {
+        sleep(50);
+        idle();
+    }
+
+    telemetry.addData("Mode", "waiting for start");
+    telemetry.addData("imu calib status", imu.getCalibrationStatus().toString());
+    telemetry.update();
+    /**///------------------------------------------------------------------------------------
+
+        while (!opModeIsActive()) {
+            //detector.printposition(detector.getPosition());
+            //fieldDetector.print(fieldDetector.getObjectsFoundations());
+            //Log.d("GO TO MO","go");
+                SkyStone[] skyStone = fieldDetector.getObjectsSkyStones();
+
+                telemetry.addData("Skystones Found", skyStone.length);
+                for (int i = 0; i < skyStone.length; i++) {
+                    try {
+                        telemetry.addLine("Skystone 1 X: " + skyStone[i].x + " Y: " + skyStone[i].y);
+                    } catch (Exception e){}
+                }
+                telemetry.update();
         }
 
-        telemetry.addData("Mode", "waiting for start");
-        telemetry.addData("imu calib status", imu.getCalibrationStatus().toString());
+        // wait for start command.
+        waitForStart();
+        //PUT STUFF YOU NEED TO DO AFTER THIS
+        
+        
+        telemetry.addLine("frik mah life");
         telemetry.update();
-        /*
-        ----------------------------------------------------
-         */
 
-        // block deetection
-
-        //while (!isStopRequested()) {
-
-            rotate(-90, 0.75);
-            telemetry.addData("Angle: ", getAngle() );
-            telemetry.addData("DONE!", 0);
-            telemetry.update();
-
-        //}
-
-        // Disable Tracking when we are done
-        //detector.stop();
-        //stone.stop();
         try {
             fieldDetector.stop();
         } catch (Exception e){}
         //imu.stop();
     }
+
 
     /*
     ----------------------------imu methods----------------------------
