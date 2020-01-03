@@ -64,6 +64,7 @@ public class DuoDou extends LinearOpMode {
     private Servo claw;
     private Servo sweepLeft;
     private Servo sweepRight;
+    private Servo foundation;
 
     // imu stuff
     BNO055IMU imu;
@@ -88,6 +89,7 @@ public class DuoDou extends LinearOpMode {
         lift = hardwareMap.get(DcMotor.class, "lift");
         arm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
+        foundation = hardwareMap.get(Servo.class, "foundation");
 
         telemetry.setAutoClear(true);
 
@@ -150,8 +152,8 @@ public class DuoDou extends LinearOpMode {
         // wait for start command.
         waitForStart();
         //PUT STUFF YOU NEED TO DO AFTER THIS
-        
-        
+
+
         telemetry.addLine("frik mah life");
         telemetry.update();
 
@@ -225,7 +227,7 @@ public class DuoDou extends LinearOpMode {
     private void rotate(int degrees, double Power) {
         resetAngle();
         stopMotors();
-        double tgtPower = Power / 2;
+        double tgtPower = Power / 4;
         // getAngle() returns + when rotating counter clockwise (left) and - when rotating clockwise (right).
 
         if (degrees > 0) {   // turn left
@@ -233,22 +235,16 @@ public class DuoDou extends LinearOpMode {
             backLeft.setPower(-tgtPower);
             frontRight.setPower(tgtPower);
             backRight.setPower(-tgtPower);
+            while(getAngle() < degrees){sleep(1);}
         } else if (degrees < 0) {   // turn right
             frontLeft.setPower(-tgtPower);
             backLeft.setPower(tgtPower);
             frontRight.setPower(-tgtPower);
             backRight.setPower(tgtPower);
+            while(getAngle() > degrees){sleep(1);}
 
         } else return;
 
-        while(!(degrees - 1 < getAngle() && getAngle() < degrees + 1)){
-            frontLeft.setPower(frontLeft.getPower());
-            frontRight.setPower(frontRight.getPower());
-            backLeft.setPower(backLeft.getPower());
-            backRight.setPower(backRight.getPower());
-            telemetry.addData("Angle: ", getAngle() );
-            telemetry.update();
-        }
         stopMotors();
         sleep(1000);
         return;
