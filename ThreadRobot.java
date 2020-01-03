@@ -1,14 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.teamcode.Thread.TaskThread;
+import org.firstinspires.ftc.teamcode.Thread.ThreadOpMode;
+
 //Extend ThreadOpMode rather than OpMode
-@TeleOp(name="Thread Robot Runner", group="Threaded Opmode")
+@TeleOp(name = "Thread Robot Runner", group = "Threaded Opmode")
 public class ThreadRobot extends ThreadOpMode {
 
     /*
@@ -74,20 +75,20 @@ public class ThreadRobot extends ThreadOpMode {
             @Override
             public void loop() {
 
-                if(gamepad2.b) {
+                if (gamepad2.b) {
                     while (gamepad2.b) { // Intake
                         sweepMotorLeft.setPower(0.75);
                         sweepMotorRight.setPower(0.75);
                         sweepLeft.setPosition(0);
                         sweepRight.setPosition(1);
                     }
-                } else if (gamepad2.a){ // In case of jam
-                    while(gamepad2.a) {
+                } else if (gamepad2.a) { // In case of jam
+                    while (gamepad2.a) {
                         sweepMotorLeft.setPower(-0.75);
                         sweepMotorRight.setPower(-0.75);
                     }
-                }else if (gamepad2.y){ //Lock in
-                    while(gamepad2.y) {
+                } else if (gamepad2.y) { //Lock in
+                    while (gamepad2.y) {
                         sweepLeft.setPosition(0);
                         sweepRight.setPosition(1);
                     }
@@ -117,8 +118,8 @@ public class ThreadRobot extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if (gamepad2.right_trigger > 0){
-                    while(arm.getPosition() > 0.01){
+                if (gamepad2.right_trigger > 0) {
+                    while (arm.getPosition() > 0.01) {
                         arm.setPosition(arm.getPosition() - 0.0005);
                     }
                 } else {
@@ -131,13 +132,13 @@ public class ThreadRobot extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if(!armSensor.getState() && gamepad2.left_stick_y > 0) {
+                if (!armSensor.getState() && gamepad2.left_stick_y > 0) {
                     lift.setPower(0);
                 } else {
                     lift.setPower(gamepad2.left_stick_y);
                 }
 
-                if(gamepad1.b) {
+                if (gamepad1.b) {
                     foundation.setPosition(0);
                 }
             }
@@ -153,7 +154,7 @@ public class ThreadRobot extends ThreadOpMode {
 
         telemetry.addData("Status", "Running");
         telemetry.addData("Motor Power: ", motorPower);
-        telemetry.addData( "IsPressed()? ", armSensor.getState());
+        telemetry.addData("IsPressed()? ", armSensor.getState());
         telemetry.update();
     }
 }
