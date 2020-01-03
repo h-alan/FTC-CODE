@@ -137,8 +137,10 @@ public class TeleOp2019 extends ThreadOpMode {
                     lift.setPower(gamepad2.left_stick_y);
                 }
 
-                if(gamepad1.b) {
-                    foundation.setPosition(0);
+                if(gamepad1.b){
+                    foundation.setPosition(0.375);
+                } else if (gamepad1.a){
+                    foundation.setPosition(0.95);
                 }
             }
         }));
@@ -146,9 +148,9 @@ public class TeleOp2019 extends ThreadOpMode {
 
     @Override
     public void mainLoop() {
-        if(gamepad1.left_stick_x < -0.8){
+        if(gamepad1.left_stick_x < -0.85){
             strafeLeft(motorPower);
-        }else if (gamepad1.left_stick_x > 0.8){
+        }else if (gamepad1.left_stick_x > 0.85){
             strafeRight(motorPower);
         } else {
             frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
