@@ -1,12 +1,12 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.Thread.TaskThread;
-import org.firstinspires.ftc.teamcode.Thread.ThreadOpMode;
+import org.firstinspires.ftc.teamcode.thread.TaskThread;
+import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
 
 //Extend ThreadOpMode rather than OpMode
 @TeleOp(name = "Thread Robot Runner", group = "Threaded Opmode")
