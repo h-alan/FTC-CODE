@@ -26,7 +26,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.firstinspires.ftc.teamcode.autonomous;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -48,7 +48,7 @@ import detectors.FoundationPipeline.SkyStone;
 import detectors.OpenCvDetector;
 
 @Autonomous(name = "The Three <<Holy Systems>>", group = "Primordial Artifact")
-public class SkystoneAuto extends LinearOpMode {
+public class DuoDou extends LinearOpMode {
     // my robot parts
     // motors
     private DcMotor frontRight;
@@ -141,77 +141,21 @@ public class SkystoneAuto extends LinearOpMode {
 
         // block deetection
 
-        while (!isStopRequested()) {
-            //detector.printposition(detector.getPosition());
-            //fieldDetector.print(fieldDetector.getObjectsFoundations());
-            //Log.d("GO TO MO","go");
-            SkyStone[] skyStone = fieldDetector.getObjectsSkyStones();
+        //while (!isStopRequested()) {
 
-            telemetry.addData("Skystones Found", skyStone.length);
-            int p = 0;
-            for (SkyStone s : skyStone) {
-                p++;
-                telemetry.addLine("" + s);
-            }
-
-            Mat m = new Mat();
-            m = null;
-
-            //also, enabling/disabling detection for individual field elements:
-                /*
-                Pipeline.doFoundations=false;
-                Pipeline.doStones=false;
-                Pipeline.doSkyStones=false;
-                */
-
-            // getting positions of each element. Will return Objects for each element that all contain
-            // Phone camera <x,y> coordinates for each element's center.
-
-            // List<Foundation> foundations = Pipeline.foundations;
-            //List<Stone> stones = Pipeline.stones;
-            List<SkyStone> skystones = Pipeline.skyStones;
-
-            for (int j = 0; j < skystones.size(); j++) {
-                telemetry.addData("Skystone center", "(" + skystones.get(j).x + ", " + skystones.get(j).y + ")");
-            }
-
-            // finding stone closesst to camera
-            SkyStone closestStone = null;
-            if(skystones.size() > 1) {
-                for(int j = 0; j < skystones.size(); j++) {
-                    double closest;
-                    closest = Math.abs(skystones.get(0).x - 300) + Math.abs(skystones.get(0).y - 300);
-                    for(int k = 0; k < skystones.size(); k++) {
-                        if(closest > (Math.abs(skystones.get(k).x - 300) + Math.abs(skystones.get(k).y - 300)));
-                        closestStone = skystones.get(k);
-                    }
-                }
-            }
-            else {
-                closestStone = skystones.get(0);
-            }
-
-            telemetry.addData("==========", "Loop delimiter");
+            rotate(-90, 0.75);
+            telemetry.addData("Angle: ", getAngle() );
+            telemetry.addData("DONE!", 0);
             telemetry.update();
 
-            while(closestStone.x > 310 || closestStone.x < 290) {
-                goBackward(0.1);
-            }
-
-            rotate(-90, 0.1);
-            collect(0.75);
-            stopMotors();
-            goBackward(0.75);
-
-        }
-
-        // wait for start command.
-        waitForStart();
+        //}
 
         // Disable Tracking when we are done
         //detector.stop();
         //stone.stop();
-        fieldDetector.stop();
+        try {
+            fieldDetector.stop();
+        } catch (Exception e){}
         //imu.stop();
     }
 
@@ -232,10 +176,6 @@ public class SkystoneAuto extends LinearOpMode {
      * @return Angle in degrees. + = left, - = right.
      */
     private double getAngle() {
-        // We experimentally determined the Z axis is the axis we want to use for heading angle.
-        // We have to process the angle because the imu works in euler angles so the Z axis is
-        // returned as 0 to +180 or 0 to -180 rolling back to -179 or +179 when rotation passes
-        // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
 
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
@@ -276,61 +216,40 @@ public class SkystoneAuto extends LinearOpMode {
         return correction;
     }
 
-    /* -----------------------------------------------------
-     * Rotate left or right the number of degrees. Does not support turning more than 180 degrees.
-     * @param degrees Degrees to turn, + is left - is right
-     * ------------------------------------------------------
-     */
-    private void rotate(int degrees, double power) {
-        double leftPower, rightPower;
-
-        // restart imu movement tracking.
-        resetAngle();
-
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
-
-        if (degrees < 0) {   // turn right.
-            leftPower = power;
-            rightPower = -power;
-        } else if (degrees > 0) {   // turn left.
-            leftPower = -power;
-            rightPower = power;
-        } else return;
-
-        // set power to rotate.
-        frontLeft.setPower(leftPower);
-        frontRight.setPower(rightPower);
-
-        // rotate until turn is completed.
-        if (degrees < 0) {
-            // On right turn we have to get off zero first.
-            while (opModeIsActive() && getAngle() == 0) {
-            }
-
-            while (opModeIsActive() && getAngle() > degrees) {
-            }
-        } else    // left turn.
-            while (opModeIsActive() && getAngle() < degrees) {
-            }
-
-        // turn the motors off.
-        frontLeft.setPower(leftPower);
-        frontRight.setPower(rightPower);
-
-        // wait for rotation to stop.
-        sleep(1000);
-
-        // reset angle tracking on new heading.
-        resetAngle();
-    }
-    /*
-    --------------------------------------------------------
-     */
-
     /*
     ----------------------- movement methods ---------------
      */
+    private void rotate(int degrees, double Power) {
+        resetAngle();
+        stopMotors();
+        double tgtPower = Power / 2;
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating clockwise (right).
+
+        if (degrees > 0) {   // turn left
+            frontLeft.setPower(tgtPower);
+            backLeft.setPower(-tgtPower);
+            frontRight.setPower(tgtPower);
+            backRight.setPower(-tgtPower);
+        } else if (degrees < 0) {   // turn right
+            frontLeft.setPower(-tgtPower);
+            backLeft.setPower(tgtPower);
+            frontRight.setPower(-tgtPower);
+            backRight.setPower(tgtPower);
+
+        } else return;
+
+        while(!(degrees - 1 < getAngle() && getAngle() < degrees + 1)){
+            frontLeft.setPower(frontLeft.getPower());
+            frontRight.setPower(frontRight.getPower());
+            backLeft.setPower(backLeft.getPower());
+            backRight.setPower(backRight.getPower());
+            telemetry.addData("Angle: ", getAngle() );
+            telemetry.update();
+        }
+        stopMotors();
+        sleep(1000);
+        return;
+    }
 
     public void collect(double tgtPower) {
         sweepMotorLeft.setPower(0.75);
