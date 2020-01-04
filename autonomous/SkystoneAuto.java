@@ -45,7 +45,7 @@ import java.util.Iterator;
 import detectors.FoundationPipeline.SkyStone;
 import detectors.OpenCvDetector;
 
-@Autonomous(name = "Mine", group = "Primordial Artifact")
+@Autonomous(name = "BlueStoneAuto", group = "BlueSide")
 public class SkystoneAuto extends LinearOpMode {
     /*
     --------------------------------------
@@ -176,69 +176,24 @@ public class SkystoneAuto extends LinearOpMode {
         ------------------------OBTAINING STONE--------------------------
         */
 
-        // left of the robot
-        if (skyStoneX > 450) {
-            goForward(-0.1);
-            sleep((long) (200));
-        } else if (skyStoneX > 300) {
-            goForward(-0.1);
-            sleep((long) (100));
-        }
-        // basically center
-        else if (skyStoneX > 200) {
-            goForward(0.1);
-            sleep((long) (100));
-        }
-        // right of the robot
-        else if (skyStoneX > 0) {
-            goForward(0.1);
-            sleep((long) (200));
-        } else if (skyStoneX == -10) {
-            goForward(0.1);
-            sleep(500);
-        }
-        stopMotors();
+        centerStone(skyStoneX);
 
         // move away from wall
         strafeLeft(0.75);
         sleep(500);
         stopMotors();
-
         rotate(80, 1);
 
-        ///////////GEITTING STONE////////////
-        goForward(0.3);
-        sleep(1600);
+        moveStone();
 
-        stopMotors();
+        //rotate(175, 1);
+        //centerStone(skyStoneX);
+        //moveStone();
+
+        // go to line
+        goBackward(0.75);
         sleep(100);
-
-        rotate(20, 1);
-        goForward(0.3);
-        sleep(400);
         stopMotors();
-        sleep(100);
-
-        collect(3);
-        lockIn();
-        //closeClaw();
-
-        /////////MOVING TO OTHER SIDE//////////
-        goBackward(0.4);
-        sleep(400);
-        rotate(160, 1);
-        strafeRight(0.75);
-        sleep(4000);
-        stopMotors();
-
-
-        /////////PUTTING STONE ON FOUNDATION////////////// NOT TESTED
-        goBackward(0.3);
-        sleep(50);
-        raiseArm(0.4);
-        sleep(400);
-        moveArm();
-        openClaw();
         ///////////////////////////////////*/
 
 
@@ -315,6 +270,69 @@ public class SkystoneAuto extends LinearOpMode {
     /*
     ----------------------- movement methods ------------------
      */
+
+    public void moveStone() {
+        ///////////GEITTING STONE////////////
+        goForward(0.3);
+        sleep(1600);
+
+        stopMotors();
+        sleep(100);
+
+        rotate(20, 1);
+        goForward(0.3);
+        sleep(600);
+        stopMotors();
+        sleep(100);
+
+        collect(3);
+        lockIn();
+        //closeClaw();
+
+        /////////MOVING TO OTHER SIDE//////////
+        goBackward(0.4);
+        sleep(800);
+        rotate(70, 1);
+
+        goForward(0.75);
+        sleep(2000);
+        outtake();
+        sleep(50);
+        stopMotors();
+        sleep(100);
+
+        ///////// GO BACK TO OTHER SIDE ////////////
+        releaseStone(0.75);
+        goBackward(0.75);
+        sleep(250);
+        stopMotors();
+    }
+
+    public boolean centerStone(double skyStoneX) {
+        // right of the robot
+        if (skyStoneX > 400) {
+            goForward(0.4);
+            sleep((long) (200));
+        }
+        // basically center
+        else if (skyStoneX > 200) {
+            goForward(0.4);
+            sleep((long) (100));
+        }
+        // left of the robot
+        else if (skyStoneX > 0) {
+            goBackward(0.4);
+            sleep((long) (200));
+        }
+        // not detected
+        else if (skyStoneX == -10) {
+            goForward(0.4);
+            sleep(500);
+            return false;
+        }
+        return true;
+    }
+
     private void rotate(int degrees, double Power) {
         resetAngle();
         stopMotors();
@@ -383,6 +401,11 @@ public class SkystoneAuto extends LinearOpMode {
         sweepMotorRight.setPower(0.75);
         sweepLeft.setPosition(0);
         sweepRight.setPosition(1);
+    }
+
+    public void releaseStone(double tgtPower) {
+        sweepMotorLeft.setPower(-tgtPower);
+        sweepMotorRight.setPower(-tgtPower);
     }
 
     public void outtake() {
