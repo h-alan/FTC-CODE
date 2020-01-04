@@ -7,12 +7,9 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.thread.TaskThread;
-import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
-
 //Extend ThreadOpMode rather than OpMode
 @TeleOp(name="Teleop 2019", group="Threaded Opmode")
-public class ThreadRobot extends ThreadOpMode {
+public class TeleOp2019 extends ThreadOpMode {
 
     /*
     --------------------------------------
@@ -140,8 +137,10 @@ public class ThreadRobot extends ThreadOpMode {
                     lift.setPower(gamepad2.left_stick_y);
                 }
 
-                if(gamepad1.b) {
-                    foundation.setPosition(0);
+                if(gamepad1.b){
+                    foundation.setPosition(0.375);
+                } else if (gamepad1.a){
+                    foundation.setPosition(0.95);
                 }
             }
         }));
@@ -149,9 +148,9 @@ public class ThreadRobot extends ThreadOpMode {
 
     @Override
     public void mainLoop() {
-        if(gamepad1.left_stick_x < -0.8){
+        if(gamepad1.left_stick_x < -0.85){
             strafeLeft(motorPower);
-        }else if (gamepad1.left_stick_x > 0.8){
+        }else if (gamepad1.left_stick_x > 0.85){
             strafeRight(motorPower);
         } else {
             frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
