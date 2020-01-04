@@ -194,6 +194,9 @@ public class SkystoneAuto extends LinearOpMode {
         goBackward(0.75);
         sleep(100);
         stopMotors();
+        strafeRight(0.75);
+        sleep(150);
+        stopMotors();
         ///////////////////////////////////*/
 
 
