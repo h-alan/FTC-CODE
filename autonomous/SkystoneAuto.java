@@ -64,6 +64,7 @@ public class SkystoneAuto extends LinearOpMode {
     private Servo sweepLeft;
     private Servo sweepRight;
     private Servo foundation;
+    private Servo stoneGrabber;
 
     //sensors
     private DigitalChannel armSensor;
@@ -96,6 +97,8 @@ public class SkystoneAuto extends LinearOpMode {
         lift = hardwareMap.get(DcMotor.class, "lift");
         arm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
+
+        stoneGrabber = hardwareMap.get(Servo.class, "stoneGrabber");
 
         telemetry.setAutoClear(true);
         outtake();
@@ -146,6 +149,7 @@ public class SkystoneAuto extends LinearOpMode {
         /*
         --------------------------STONE LOCATOR-------------------------
         */
+        /*
         double skyStoneX = -10;
         while (!opModeIsActive()) {
             //detector.printposition(detector.getPosition());
@@ -165,7 +169,9 @@ public class SkystoneAuto extends LinearOpMode {
             }
             telemetry.update();
         }
-
+        */
+        // 0 is down
+        stoneGrabber.setPosition(0);
         // wait for start command.
         waitForStart();
         /*
@@ -176,8 +182,8 @@ public class SkystoneAuto extends LinearOpMode {
         ------------------------OBTAINING STONE--------------------------
         */
 
-        centerStone(skyStoneX);
 
+        /*
         // move away from wall
         strafeLeft(0.75);
         sleep(500);
@@ -197,6 +203,8 @@ public class SkystoneAuto extends LinearOpMode {
         strafeRight(0.75);
         sleep(150);
         stopMotors();
+
+         */
         ///////////////////////////////////*/
 
 
