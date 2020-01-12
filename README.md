@@ -1,2 +1,2 @@
 # FTC-CODE
-The main branch may never be used
+The current code for Team Undefined's robot
