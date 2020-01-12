@@ -35,20 +35,32 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
-import detectors.FoundationPipeline.SkyStone;
-import detectors.OpenCvDetector;
+import static org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES;
+import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
+import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
+import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
+import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.BACK;
 
 @Autonomous(name = "BlueStoneAuto", group = "BlueSide")
 public class SkystoneAuto extends LinearOpMode {
     /*
-    --------------------------------------
+    -------------ROBOT PARTS SETUP---------------
      */
     private DcMotor frontRight;
     private DcMotor frontLeft;
@@ -75,6 +87,52 @@ public class SkystoneAuto extends LinearOpMode {
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
     double globalAngle, power = .30, correction;
+    /*
+    --------------------------------------
+    */
+
+    /*
+      -------------VUFORIA SETUP----------
+    */
+    // IMPORTANT:  For Phone Camera, set 1) the camera source and 2) the orientation, based on how your phone is mounted:
+    // 1) Camera Source.  Valid choices are:  BACK (behind screen) or FRONT (selfie side)
+    // 2) Phone Orientation. Choices are: PHONE_IS_PORTRAIT = true (portrait) or PHONE_IS_PORTRAIT = false (landscape)
+    //
+    // NOTE: If you are running on a CONTROL HUB, with only one USB WebCam, you must select CAMERA_CHOICE = BACK; and PHONE_IS_PORTRAIT = false;
+    //
+    private static final VuforiaLocalizer.CameraDirection CAMERA_CHOICE = BACK;
+    private static final boolean PHONE_IS_PORTRAIT = false;
+
+    private static final String VUFORIA_KEY =
+            "AeflKlH/////AAABmQAedZNXCkKmqQ2CkC55GVkZGoxK0YlVMNeDwQgN5B9Jq26R9J8TZ0qlrBQVz2o3vEgIjMfV8rZF2Z7PPxZJnScBap/Jh2cxT0teLCWkuBk/mZzWC0bRjhpwT0JkU3AGpztJHL4oJZDEaf4fUDilG1NdczNT5V8nL/ZraZzRZvGBwYO7q42b32DKKb+05OemiCOCx34h0qq0lkahDKKO7k1UTpznzyK33IPVtvutSgGvdrpNe/Jv5ApIvHcib4bKom7XVqf800+Adi0bDD94NSWFeJq+i/IZnJJqH9iXXdl3Qjptri6irrciVJtmjtyZCnFB0n4ni90VmmDb5We3Dvft6wjdPrVO5UVAotWZJAnr";
+
+    // Since ImageTarget trackables use mm to specifiy their dimensions, we must use mm for all the physical dimension.
+    // We will define some constants and conversions here
+    private static final float mmPerInch = 25.4f;
+    private static final float mmTargetHeight = (6) * mmPerInch;          // the height of the center of the target image above the floor
+
+    // Constant for Stone Target
+    private static final float stoneZ = 2.00f * mmPerInch;
+
+    // Constants for the center support targets
+    private static final float bridgeZ = 6.42f * mmPerInch;
+    private static final float bridgeY = 23 * mmPerInch;
+    private static final float bridgeX = 5.18f * mmPerInch;
+    private static final float bridgeRotY = 59;                                 // Units are degrees
+    private static final float bridgeRotZ = 180;
+
+    // Constants for perimeter targets
+    private static final float halfField = 72 * mmPerInch;
+    private static final float quadField = 36 * mmPerInch;
+
+    // Class Members
+    private OpenGLMatrix lastLocation = null;
+    private VuforiaLocalizer vuforia = null;
+    private boolean targetVisible = false;
+    private float phoneXRotate = 0;
+    private float phoneYRotate = 0;
+    private float phoneZRotate = 0;
+
     /*
     --------------------------------------
      */
@@ -106,29 +164,84 @@ public class SkystoneAuto extends LinearOpMode {
         telemetry.addData("Booting Up", " . . .");
         telemetry.update();
         /*
-        ---------------------------------------------------------
+        --------------------------------------
         */
 
-        OpenCvDetector fieldDetector = new OpenCvDetector(this);
-        fieldDetector.start();
+        /*
+        -----------------VUFORIA SETUP----------------------
+        */
+
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+
+        // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraDirection = CAMERA_CHOICE;
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Load the data sets for the trackable objects. These particular data
+        // sets are stored in the 'assets' part of our application.
+        VuforiaTrackables targetsSkyStone = this.vuforia.loadTrackablesFromAsset("Skystone");
+
+        VuforiaTrackable stoneTarget = targetsSkyStone.get(0);
+        stoneTarget.setName("Stone Target");
+
+        // For convenience, gather together all the trackable objects in one easily-iterable collection */
+        List<VuforiaTrackable> allTrackables = new ArrayList<VuforiaTrackable>();
+        allTrackables.addAll(targetsSkyStone);
+
+        // Set the position of the Stone Target.  Since it's not fixed in position, assume it's at the field origin.
+        stoneTarget.setLocation(OpenGLMatrix
+                .translation(0, 0, stoneZ)
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
+
+        // We need to rotate the camera around it's long axis to bring the correct camera forward.
+        if (CAMERA_CHOICE == BACK) {
+            phoneYRotate = -90;
+        } else {
+            phoneYRotate = 90;
+        }
+
+        // Rotate the phone vertical about the X axis if it's in portrait mode
+        if (PHONE_IS_PORTRAIT) {
+            phoneXRotate = 90;
+        }
+
+        // Next, translate the camera lens to where it is on the robot.
+        // In this example, it is centered (left to right), but forward of the middle of the robot, and above ground level.
+        final float CAMERA_FORWARD_DISPLACEMENT = 4.0f * mmPerInch;   // eg: Camera is 4 Inches in front of robot center
+        final float CAMERA_VERTICAL_DISPLACEMENT = 8.0f * mmPerInch;   // eg: Camera is 8 Inches above ground
+        final float CAMERA_LEFT_DISPLACEMENT = 0;     // eg: Camera is ON the robot's center line
+
+        OpenGLMatrix robotFromCamera = OpenGLMatrix
+                .translation(CAMERA_FORWARD_DISPLACEMENT, CAMERA_LEFT_DISPLACEMENT, CAMERA_VERTICAL_DISPLACEMENT)
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, YZX, DEGREES, phoneYRotate, phoneZRotate, phoneXRotate));
+
+        /**  Let all the trackable listeners know where the phone is.  */
+        for (VuforiaTrackable trackable : allTrackables) {
+            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(robotFromCamera, parameters.cameraDirection);
+        }
 
         /*
         ------------------------IMU SETUP------------------------
         */
 
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        BNO055IMU.Parameters imuParameters = new BNO055IMU.Parameters();
 
-        parameters.mode = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled = false;
+        imuParameters.mode = BNO055IMU.SensorMode.IMU;
+        imuParameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        imuParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imuParameters.loggingEnabled = false;
 
         // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
         // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
         // and named "imu".
         imu = hardwareMap.get(BNO055IMU.class, "imu");
 
-        imu.initialize(parameters);
+        imu.initialize(imuParameters);
 
         // caliblrating imu
         telemetry.addData("Mode", "calibrating...");
@@ -149,31 +262,60 @@ public class SkystoneAuto extends LinearOpMode {
         /*
         --------------------------STONE LOCATOR-------------------------
         */
-        /*
-        double skyStoneX = -10;
-        while (!opModeIsActive()) {
-            //detector.printposition(detector.getPosition());
-            //fieldDetector.print(fieldDetector.getObjectsFoundations());
-            //Log.d("GO TO MO","go");
-            SkyStone[] skyStone = fieldDetector.getObjectsSkyStones();
 
-            telemetry.addData("Skystones Found", skyStone.length);
-            for (int i = 0; i < skyStone.length; i++) {
-                try {
-                    telemetry.addLine("Skystone 1 X: " + skyStone[i].x + " Y: " + skyStone[i].y);
-                    if (skyStone[i].y < 260 && skyStone[i].y > 150)
-                        skyStoneX = skyStone[i].x;
-                    telemetry.addLine("X COORD: " + skyStoneX);
-                } catch (Exception e) {
+        // wait for start command.
+        waitForStart();
+
+        // move away from wall
+        strafeLeft(1);
+        sleep(1200);
+        stopMotors();
+
+        targetsSkyStone.activate();
+        targetVisible = false;
+        goForward(0.1);
+
+        long startTime = System.currentTimeMillis();
+        long endTime = 0;
+
+        while (!targetVisible) {
+            // check all the trackable targets to see which one (if any) is visible.
+            for (VuforiaTrackable trackable : allTrackables) {
+                if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
+                    telemetry.addData("Visible Target", trackable.getName());
+                    targetVisible = true;
+
+                    // getUpdatedRobotLocation() will return null if no new information is available since
+                    // the last time that call was made, or if the trackable is not currently visible.
+                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
+                    if (robotLocationTransform != null) {
+                        lastLocation = robotLocationTransform;
+                    }
+                    endTime = System.currentTimeMillis();
+                    break;
                 }
+            }
+
+            // Provide feedback as to where the robot is located (if we know).
+            if (targetVisible) {
+                // express position (translation) of robot in inches.
+                VectorF translation = lastLocation.getTranslation();
+                telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
+                        translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
+
+                // express the rotation of the robot in degrees.
+                Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
+                telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
+            }
+            else {
+                telemetry.addData("Visible Target", "none");
             }
             telemetry.update();
         }
-        */
-        // 0 is down
-        stoneGrabber.setPosition(0);
-        // wait for start command.
-        waitForStart();
+
+        long elapsedTime = endTime - startTime;
+        stopMotors();
+
         /*
         ---------------------------------------------------------------------
         */
@@ -182,19 +324,7 @@ public class SkystoneAuto extends LinearOpMode {
         ------------------------OBTAINING STONE--------------------------
         */
 
-
-        /*
-        // move away from wall
-        strafeLeft(0.75);
-        sleep(500);
-        stopMotors();
-        rotate(80, 1);
-
-        moveStone();
-
-        //rotate(175, 1);
-        //centerStone(skyStoneX);
-        //moveStone();
+        moveStone(elapsedTime);
 
         // go to line
         goBackward(0.75);
@@ -204,17 +334,13 @@ public class SkystoneAuto extends LinearOpMode {
         sleep(150);
         stopMotors();
 
-         */
         ///////////////////////////////////*/
-
 
         telemetry.addLine("frik mah life");
         telemetry.update();
 
-        try {
-            fieldDetector.stop();
-        } catch (Exception e) {
-        }
+        // deactivate our camera
+        targetsSkyStone.deactivate();
     }
 
 
@@ -282,66 +408,17 @@ public class SkystoneAuto extends LinearOpMode {
     ----------------------- movement methods ------------------
      */
 
-    public void moveStone() {
-        ///////////GEITTING STONE////////////
-        goForward(0.3);
-        sleep(1600);
-
-        stopMotors();
-        sleep(100);
-
-        rotate(20, 1);
-        goForward(0.3);
-        sleep(600);
-        stopMotors();
-        sleep(100);
-
-        collect(3);
-        lockIn();
-        //closeClaw();
+    public void moveStone(long elapsedTime) {
+        // latch onto stone
+        stoneGrabber.setPosition(0);
 
         /////////MOVING TO OTHER SIDE//////////
+        strafeRight(1);
+        sleep(200);
         goBackward(0.4);
-        sleep(800);
-        rotate(70, 1);
+        sleep(elapsedTime + 800);
 
-        goForward(0.75);
-        sleep(2000);
-        outtake();
-        sleep(50);
-        stopMotors();
-        sleep(100);
-
-        ///////// GO BACK TO OTHER SIDE ////////////
-        releaseStone(0.75);
-        goBackward(0.75);
-        sleep(250);
-        stopMotors();
-    }
-
-    public boolean centerStone(double skyStoneX) {
-        // right of the robot
-        if (skyStoneX > 400) {
-            goForward(0.4);
-            sleep((long) (200));
-        }
-        // basically center
-        else if (skyStoneX > 200) {
-            goForward(0.4);
-            sleep((long) (100));
-        }
-        // left of the robot
-        else if (skyStoneX > 0) {
-            goBackward(0.4);
-            sleep((long) (200));
-        }
-        // not detected
-        else if (skyStoneX == -10) {
-            goForward(0.4);
-            sleep(500);
-            return false;
-        }
-        return true;
+        stoneGrabber.setPosition(0.5);
     }
 
     private void rotate(int degrees, double Power) {
@@ -395,10 +472,6 @@ public class SkystoneAuto extends LinearOpMode {
 
     public void raiseArm(double tgtPower) {
         lift.setPower(tgtPower);
-    }
-
-    public void holdArm() {
-        //????
     }
 
     public void lowerArm() {
