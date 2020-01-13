@@ -159,7 +159,6 @@ public class SkystoneAuto extends LinearOpMode {
         stoneGrabber = hardwareMap.get(Servo.class, "stoneGrabber");
 
         telemetry.setAutoClear(true);
-        outtake();
 
         telemetry.addData("Booting Up", " . . .");
         telemetry.update();
@@ -267,9 +266,10 @@ public class SkystoneAuto extends LinearOpMode {
         waitForStart();
 
         // move away from wall
-        strafeLeft(1);
-        sleep(1200);
+        goForward(1);
+        sleep(500);
         stopMotors();
+        rotate(-87,1);
 
         targetsSkyStone.activate();
         targetVisible = false;
@@ -327,7 +327,7 @@ public class SkystoneAuto extends LinearOpMode {
         moveStone(elapsedTime);
 
         // go to line
-        goBackward(0.75);
+        goForward(0.75);
         sleep(100);
         stopMotors();
         strafeRight(0.75);
@@ -409,16 +409,26 @@ public class SkystoneAuto extends LinearOpMode {
      */
 
     public void moveStone(long elapsedTime) {
+        // move toward stone
+        goForward(0.3);
+        sleep(200);
+        strafeLeft(0.5);
+        sleep(800);
+        stopMotors();
+        sleep(150);
         // latch onto stone
-        stoneGrabber.setPosition(0);
+        latchStone();
+        sleep(2000);
 
+        rotate((int)(0 - getAngle() - 90),1);
+        sleep(150);
         /////////MOVING TO OTHER SIDE//////////
         strafeRight(1);
-        sleep(200);
+        sleep(700);
         goBackward(0.4);
-        sleep(elapsedTime + 800);
+        sleep(elapsedTime/4 + 1000);
 
-        stoneGrabber.setPosition(0.5);
+        unlatchStone();
     }
 
     private void rotate(int degrees, double Power) {
@@ -512,6 +522,14 @@ public class SkystoneAuto extends LinearOpMode {
         claw.setPosition(0);
     }
 
+    public void latchStone() {
+        stoneGrabber.setPosition(0);
+    }
+
+    public void unlatchStone() {
+        stoneGrabber.setPosition(1);
+    }
+
     public void goForward(double tgtPower) { //done?
         frontRight.setPower(tgtPower);
         frontLeft.setPower(-tgtPower);
@@ -525,7 +543,6 @@ public class SkystoneAuto extends LinearOpMode {
         backRight.setPower(tgtPower);
         backLeft.setPower(-tgtPower);
     }
-
 
     ////////////////////////////////////////////////
     public void strafeRight(double tgtPower) {
