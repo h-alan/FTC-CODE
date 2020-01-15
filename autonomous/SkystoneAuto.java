@@ -267,9 +267,10 @@ public class SkystoneAuto extends LinearOpMode {
 
         // move away from wall
         goForward(1);
-        sleep(500);
+        sleep(550);
         stopMotors();
-        rotate(-87,1);
+        rotate(-85,1);
+        resetAngle();
 
         targetsSkyStone.activate();
         targetVisible = false;
@@ -301,7 +302,7 @@ public class SkystoneAuto extends LinearOpMode {
                 // express position (translation) of robot in inches.
                 VectorF translation = lastLocation.getTranslation();
                 telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
-                        translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
+                        translation.get(0), translation.get(1), translation.get(2));
 
                 // express the rotation of the robot in degrees.
                 Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
@@ -316,6 +317,51 @@ public class SkystoneAuto extends LinearOpMode {
         long elapsedTime = endTime - startTime;
         stopMotors();
 
+        boolean centered = false;
+
+        while (!centered) {
+            // check all the trackable targets to see which one (if any) is visible.
+            for (VuforiaTrackable trackable : allTrackables) {
+                if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
+                    telemetry.addData("Visible Target", trackable.getName());
+                    targetVisible = true;
+
+                    // getUpdatedRobotLocation() will return null if no new information is available since
+                    // the last time that call was made, or if the trackable is not currently visible.
+                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
+                    if (robotLocationTransform != null) {
+                        lastLocation = robotLocationTransform;
+                    }
+                    endTime = System.currentTimeMillis();
+                    break;
+                }
+            }
+
+            float cord = 0;
+            // Provide feedback as to where the robot is located (if we know).
+            if (targetVisible) {
+                // express position (translation) of robot in inches.
+                VectorF translation = lastLocation.getTranslation();
+                telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
+                        translation.get(0), translation.get(1), translation.get(2));
+                cord = translation.get(1);
+
+                // express the rotation of the robot in degrees.
+                Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
+                telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
+            }
+            else {
+                telemetry.addData("Visible Target", "none");
+            }
+            telemetry.update();
+
+            if(cord != 0 && cord > -77){
+                goForward(0.1);
+            } else if(cord != 0 && cord < -82){
+                goBackward(0.1);
+            } else {centered = true;}
+        }
+
         /*
         ---------------------------------------------------------------------
         */
@@ -324,14 +370,15 @@ public class SkystoneAuto extends LinearOpMode {
         ------------------------OBTAINING STONE--------------------------
         */
 
+
         moveStone(elapsedTime);
 
         // go to line
         goForward(0.75);
-        sleep(100);
+        sleep(500);
         stopMotors();
-        strafeRight(0.75);
-        sleep(150);
+        strafeLeft(0.75);
+        sleep(200);
         stopMotors();
 
         ///////////////////////////////////*/
@@ -408,25 +455,26 @@ public class SkystoneAuto extends LinearOpMode {
     ----------------------- movement methods ------------------
      */
 
+
     public void moveStone(long elapsedTime) {
         // move toward stone
-        goForward(0.3);
-        sleep(200);
         strafeLeft(0.5);
-        sleep(800);
+        sleep(900);
         stopMotors();
         sleep(150);
         // latch onto stone
         latchStone();
-        sleep(2000);
+        sleep(900);
 
-        rotate((int)(0 - getAngle() - 90),1);
+        rotate((int)(0 - getAngle()),1);
         sleep(150);
         /////////MOVING TO OTHER SIDE//////////
         strafeRight(1);
         sleep(700);
+        rotate((int)(0 - getAngle()),1);
+        sleep(150);
         goBackward(0.4);
-        sleep(elapsedTime/4 + 1000);
+        sleep(elapsedTime/4 + 1300);
 
         unlatchStone();
     }
