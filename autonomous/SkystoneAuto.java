@@ -355,9 +355,9 @@ public class SkystoneAuto extends LinearOpMode {
             }
             telemetry.update();
 
-            if(cord != 0 && cord > -77){
+            if(cord != 0 && cord > -70){
                 goForward(0.1);
-            } else if(cord != 0 && cord < -82){
+            } else if(cord != 0 && cord < -75){
                 goBackward(0.1);
             } else {centered = true;}
         }
