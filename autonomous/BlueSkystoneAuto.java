@@ -29,6 +29,7 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -41,6 +42,7 @@ import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
@@ -80,6 +82,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
     //sensors
     private DigitalChannel armSensor;
+    private Rev2mDistanceSensor tof;
 
     final double motorPower = 0.75;
 
@@ -157,6 +160,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         claw = hardwareMap.get(Servo.class, "claw");
 
         stoneGrabber = hardwareMap.get(Servo.class, "stoneGrabber");
+        tof = hardwareMap.get(Rev2mDistanceSensor.class, "tof");
 
         telemetry.setAutoClear(true);
 
@@ -355,9 +359,11 @@ public class BlueSkystoneAuto extends LinearOpMode {
             }
             telemetry.update();
 
-            if(cord != 0 && cord > -70){
+            int midpoint = -40;
+
+            if(cord != 0 && cord > midpoint + 5){ //left most screen oriented bound
                 goForward(0.1);
-            } else if(cord != 0 && cord < -75){
+            } else if(cord != 0 && cord < midpoint - 5){ //right most screen oriented bound
                 goBackward(0.1);
             } else {centered = true;}
         }
@@ -371,15 +377,34 @@ public class BlueSkystoneAuto extends LinearOpMode {
         */
 
 
-        moveStone(elapsedTime);
+        moveStone();
+        stopMotors();
 
-        // go to line
-        goForward(0.75);
+        goBackward(0.7);
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+            goBackward(0.5);
+            telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
+        }
         sleep(500);
         stopMotors();
-        strafeLeft(0.75);
-        sleep(200);
+        unlatchStone();
+        sleep(500);
+
+        // go to line
+        goForward(0.5);
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+            goForward(0.5);
+            telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
+        }
+
+        sweepLeft.setPosition(0);
+        sweepRight.setPosition(1);
+
+        rotate(-85,1);
+        goBackward(0.4);
+        sleep(800);
         stopMotors();
+
 
         ///////////////////////////////////*/
 
@@ -456,7 +481,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
      */
 
 
-    public void moveStone(long elapsedTime) {
+    public void moveStone() {
         // move toward stone
         strafeLeft(0.5);
         sleep(900);
@@ -473,10 +498,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
         sleep(700);
         rotate((int)(0 - getAngle()),1);
         sleep(150);
-        goBackward(0.4);
-        sleep(elapsedTime/4 + 1300);
-
-        unlatchStone();
     }
 
     private void rotate(int degrees, double Power) {
