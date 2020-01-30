@@ -276,7 +276,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         // move away from wall
         goForward(0.5);
-        while(fronttof.getDistance(DistanceUnit.MM) > 400){
+        while(fronttof.getDistance(DistanceUnit.MM) > 370){
             goForward(0.5);
             telemetry.addData("Distance", fronttof.getDistance(DistanceUnit.MM));
             telemetry.update();
@@ -385,7 +385,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         stopMotors();
 
         goBackward(0.7);
-        while (tof.getDistance(DistanceUnit.MM) > 350) {//lowers the robot
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
             goBackward(0.5);
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
