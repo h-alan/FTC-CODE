@@ -83,6 +83,9 @@ public class BlueSkystoneAuto extends LinearOpMode {
     //sensors
     private DigitalChannel armSensor;
     private Rev2mDistanceSensor tof;
+    private Rev2mDistanceSensor fronttof;
+
+
 
     final double motorPower = 0.75;
 
@@ -161,6 +164,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         stoneGrabber = hardwareMap.get(Servo.class, "stoneGrabber");
         tof = hardwareMap.get(Rev2mDistanceSensor.class, "tof");
+        fronttof = hardwareMap.get(Rev2mDistanceSensor.class, "fronttof");
 
         telemetry.setAutoClear(true);
 
@@ -265,23 +269,27 @@ public class BlueSkystoneAuto extends LinearOpMode {
         /*
         --------------------------STONE LOCATOR-------------------------
         */
-
+        sweepLeft.setPosition(0);
+        sweepRight.setPosition(1);
         // wait for start command.
         waitForStart();
 
         // move away from wall
-        goForward(1);
-        sleep(550);
+        goForward(0.5);
+        while(fronttof.getDistance(DistanceUnit.MM) > 400){
+            goForward(0.5);
+            telemetry.addData("Distance", fronttof.getDistance(DistanceUnit.MM));
+            telemetry.update();
+        }
         stopMotors();
-        rotate(-85,1);
+        sleep(50);
+
+        rotate(-87,1);
         resetAngle();
 
         targetsSkyStone.activate();
         targetVisible = false;
         goForward(0.1);
-
-        long startTime = System.currentTimeMillis();
-        long endTime = 0;
 
         while (!targetVisible) {
             // check all the trackable targets to see which one (if any) is visible.
@@ -296,7 +304,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
                     if (robotLocationTransform != null) {
                         lastLocation = robotLocationTransform;
                     }
-                    endTime = System.currentTimeMillis();
                     break;
                 }
             }
@@ -317,8 +324,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
             }
             telemetry.update();
         }
-
-        long elapsedTime = endTime - startTime;
         stopMotors();
 
         boolean centered = false;
@@ -336,7 +341,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
                     if (robotLocationTransform != null) {
                         lastLocation = robotLocationTransform;
                     }
-                    endTime = System.currentTimeMillis();
                     break;
                 }
             }
@@ -381,7 +385,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         stopMotors();
 
         goBackward(0.7);
-        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+        while (tof.getDistance(DistanceUnit.MM) > 350) {//lowers the robot
             goBackward(0.5);
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
@@ -402,7 +406,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         rotate(-85,1);
         goBackward(0.4);
-        sleep(800);
+        sleep(500);
         stopMotors();
 
 
