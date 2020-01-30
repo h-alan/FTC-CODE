@@ -383,6 +383,8 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         moveStone();
         stopMotors();
+        // deactivate our camera
+        targetsSkyStone.deactivate();
 
         goBackward(0.7);
         while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
@@ -406,7 +408,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         rotate(-85,1);
         goBackward(0.4);
-        sleep(500);
+        sleep(300);
         stopMotors();
 
 
@@ -415,8 +417,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         telemetry.addLine("frik mah life");
         telemetry.update();
 
-        // deactivate our camera
-        targetsSkyStone.deactivate();
+
     }
 
 
@@ -493,7 +494,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         sleep(150);
         // latch onto stone
         latchStone();
-        sleep(900);
+        sleep(400);
 
         rotate((int)(0 - getAngle()),1);
         sleep(150);
@@ -530,7 +531,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         } else return;
 
         stopMotors();
-        sleep(1000);
+        sleep(50);
         return;
     }
 
