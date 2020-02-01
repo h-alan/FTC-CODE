@@ -85,6 +85,7 @@ public class RedSkystoneAuto extends LinearOpMode {
     //sensors
     private DigitalChannel armSensor;
     private Rev2mDistanceSensor tof;
+    private Rev2mDistanceSensor fronttof;
 
     final double motorPower = 0.75;
 
@@ -163,6 +164,7 @@ public class RedSkystoneAuto extends LinearOpMode {
 
         stoneGrabber = hardwareMap.get(Servo.class, "stoneGrabber");
         tof = hardwareMap.get(Rev2mDistanceSensor.class, "tof");
+        fronttof = hardwareMap.get(Rev2mDistanceSensor.class, "fronttof");
 
         telemetry.setAutoClear(true);
 
@@ -272,11 +274,14 @@ public class RedSkystoneAuto extends LinearOpMode {
         waitForStart();
 
         // move away from wall
-        goForward(1);
-        sleep(550);
+        goForward(0.5);
+        while(fronttof.getDistance(DistanceUnit.MM) > 350){
+            goForward(0.5);
+            telemetry.addData("Distance", fronttof.getDistance(DistanceUnit.MM));
+            telemetry.update();
+        }
         stopMotors();
-        rotate(85,1);
-        resetAngle();
+        sleep(50);
 
         targetsSkyStone.activate();
         targetVisible = false;
@@ -377,20 +382,33 @@ public class RedSkystoneAuto extends LinearOpMode {
         */
 
 
-        moveStone(elapsedTime);
-
-        // go to line
-        boolean onLine = false;
-        goBackward(0.2);
-        while (!onLine) {//lowers the robot
-            if (tof.getDistance(DistanceUnit.MM) < 400) {
-                onLine = true;
-            }
-        }
+        moveStone();
         stopMotors();
 
+        goBackward(0.7);
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+            goBackward(0.5);
+            telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
+        }
+        sleep(500);
+        stopMotors();
+        unlatchStone();
+        sleep(500);
 
+        // go to line
+        goForward(0.5);
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+            goForward(0.5);
+            telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
+        }
 
+        sweepLeft.setPosition(0);
+        sweepRight.setPosition(1);
+
+        rotate(-85,1);
+        goBackward(0.4);
+        sleep(800);
+        stopMotors();
         ///////////////////////////////////*/
 
         telemetry.addLine("frik mah life");
@@ -466,7 +484,7 @@ public class RedSkystoneAuto extends LinearOpMode {
      */
 
 
-    public void moveStone(long elapsedTime) {
+    public void moveStone() {
         // move toward stone
         strafeRight(0.5);
         sleep(900);
@@ -483,10 +501,6 @@ public class RedSkystoneAuto extends LinearOpMode {
         sleep(700);
         rotate((int)(0 - getAngle()),1);
         sleep(150);
-        goBackward(0.4);
-        sleep(elapsedTime/4 + 1300);
-
-        unlatchStone();
     }
 
     private void rotate(int degrees, double Power) {
@@ -515,7 +529,7 @@ public class RedSkystoneAuto extends LinearOpMode {
         } else return;
 
         stopMotors();
-        sleep(1000);
+        sleep(400);
         return;
     }
 
