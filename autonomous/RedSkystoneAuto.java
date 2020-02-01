@@ -31,7 +31,6 @@ package org.firstinspires.ftc.teamcode.autonomous;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -60,12 +59,11 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.BACK;
 
-@Disabled
-@Autonomous(name = "RedStoneAuto", group = "RedSide")
-public class RedSkystoneAuto extends LinearOpMode {
+@Autonomous(name = "BlueStoneAuto", group = "BlueSide")
+public class BlueSkystoneAuto extends LinearOpMode {
     /*
-     -------------ROBOT PARTS SETUP---------------
-      */
+    -------------ROBOT PARTS SETUP---------------
+     */
     private DcMotor frontRight;
     private DcMotor frontLeft;
     private DcMotor backRight;
@@ -86,6 +84,8 @@ public class RedSkystoneAuto extends LinearOpMode {
     private DigitalChannel armSensor;
     private Rev2mDistanceSensor tof;
     private Rev2mDistanceSensor fronttof;
+
+
 
     final double motorPower = 0.75;
 
@@ -269,13 +269,14 @@ public class RedSkystoneAuto extends LinearOpMode {
         /*
         --------------------------STONE LOCATOR-------------------------
         */
-
+        sweepLeft.setPosition(0);
+        sweepRight.setPosition(1);
         // wait for start command.
         waitForStart();
 
         // move away from wall
         goForward(0.5);
-        while(fronttof.getDistance(DistanceUnit.MM) > 350){
+        while(fronttof.getDistance(DistanceUnit.MM) > 370){
             goForward(0.5);
             telemetry.addData("Distance", fronttof.getDistance(DistanceUnit.MM));
             telemetry.update();
@@ -283,12 +284,12 @@ public class RedSkystoneAuto extends LinearOpMode {
         stopMotors();
         sleep(50);
 
+        rotate(87,1);
+        resetAngle();
+
         targetsSkyStone.activate();
         targetVisible = false;
-        goBackward(0.1);
-
-        long startTime = System.currentTimeMillis();
-        long endTime = 0;
+        goForward(0.1);
 
         while (!targetVisible) {
             // check all the trackable targets to see which one (if any) is visible.
@@ -303,7 +304,6 @@ public class RedSkystoneAuto extends LinearOpMode {
                     if (robotLocationTransform != null) {
                         lastLocation = robotLocationTransform;
                     }
-                    endTime = System.currentTimeMillis();
                     break;
                 }
             }
@@ -324,8 +324,6 @@ public class RedSkystoneAuto extends LinearOpMode {
             }
             telemetry.update();
         }
-
-        long elapsedTime = endTime - startTime;
         stopMotors();
 
         boolean centered = false;
@@ -343,7 +341,6 @@ public class RedSkystoneAuto extends LinearOpMode {
                     if (robotLocationTransform != null) {
                         lastLocation = robotLocationTransform;
                     }
-                    endTime = System.currentTimeMillis();
                     break;
                 }
             }
@@ -366,10 +363,12 @@ public class RedSkystoneAuto extends LinearOpMode {
             }
             telemetry.update();
 
-            if(cord != 0 && cord > -70){
-                goBackward(0.1);
-            } else if(cord != 0 && cord < -75){
+            int midpoint = -40;
+
+            if(cord != 0 && cord > midpoint + 5){ //left most screen oriented bound
                 goForward(0.1);
+            } else if(cord != 0 && cord < midpoint - 5){ //right most screen oriented bound
+                goBackward(0.1);
             } else {centered = true;}
         }
 
@@ -384,9 +383,11 @@ public class RedSkystoneAuto extends LinearOpMode {
 
         moveStone();
         stopMotors();
+        // deactivate our camera
+        targetsSkyStone.deactivate();
 
         goBackward(0.7);
-        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+        while (tof.getDistance(DistanceUnit.MM) > 400) {
             goBackward(0.5);
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
@@ -397,7 +398,7 @@ public class RedSkystoneAuto extends LinearOpMode {
 
         // go to line
         goForward(0.5);
-        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+        while (tof.getDistance(DistanceUnit.MM) > 400) {
             goForward(0.5);
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
@@ -405,17 +406,18 @@ public class RedSkystoneAuto extends LinearOpMode {
         sweepLeft.setPosition(0);
         sweepRight.setPosition(1);
 
-        rotate(-85,1);
+        rotate(85,1);
         goBackward(0.4);
-        sleep(800);
+        sleep(300);
         stopMotors();
+
+
         ///////////////////////////////////*/
 
         telemetry.addLine("frik mah life");
         telemetry.update();
 
-        // deactivate our camera
-        targetsSkyStone.deactivate();
+
     }
 
 
@@ -492,7 +494,7 @@ public class RedSkystoneAuto extends LinearOpMode {
         sleep(150);
         // latch onto stone
         latchStone();
-        sleep(900);
+        sleep(400);
 
         rotate((int)(0 - getAngle()),1);
         sleep(150);
@@ -526,10 +528,10 @@ public class RedSkystoneAuto extends LinearOpMode {
                 sleep(1);
             }
 
-        } else return;
+        } else return;-
 
-        stopMotors();
-        sleep(400);
+                stopMotors();
+        sleep(100);
         return;
     }
 
