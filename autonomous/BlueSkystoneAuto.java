@@ -26,7 +26,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.firstinspires.ftc.teamcode.autonomous;
+package org.firstinspires.ftc.teamcode.autonomous.blue;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
@@ -275,9 +275,9 @@ public class BlueSkystoneAuto extends LinearOpMode {
         waitForStart();
 
         // move away from wall
-        goForward(0.5);
+        goForward(0.3);
         while(fronttof.getDistance(DistanceUnit.MM) > 370){
-            goForward(0.5);
+            goForward(0.3);
             telemetry.addData("Distance", fronttof.getDistance(DistanceUnit.MM));
             telemetry.update();
         }
@@ -288,8 +288,13 @@ public class BlueSkystoneAuto extends LinearOpMode {
         resetAngle();
 
         targetsSkyStone.activate();
+
         targetVisible = false;
-        goForward(0.1);
+        double scan = 0.1;
+        goForward(scan);
+
+        double startTime = System.currentTimeMillis();
+        boolean foundStone = false;
 
         while (!targetVisible) {
             // check all the trackable targets to see which one (if any) is visible.
@@ -297,6 +302,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
                 if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
                     telemetry.addData("Visible Target", trackable.getName());
                     targetVisible = true;
+                    foundStone = true;
 
                     // getUpdatedRobotLocation() will return null if no new information is available since
                     // the last time that call was made, or if the trackable is not currently visible.
@@ -323,53 +329,66 @@ public class BlueSkystoneAuto extends LinearOpMode {
                 telemetry.addData("Visible Target", "none");
             }
             telemetry.update();
+
+            /////////////////
+            if(System.currentTimeMillis() - startTime > 12000) {
+                break;
+            }
         }
         stopMotors();
+        /*
+        ----------------------------------------------------------------
+        */
 
+        /*
+        --------------------------Centering STONE-------------------------
+        */
         boolean centered = false;
+        if(foundStone) {
+            while (!centered) {
+                // check all the trackable targets to see which one (if any) is visible.
+                for (VuforiaTrackable trackable : allTrackables) {
+                    if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
+                        telemetry.addData("Visible Target", trackable.getName());
+                        targetVisible = true;
 
-        while (!centered) {
-            // check all the trackable targets to see which one (if any) is visible.
-            for (VuforiaTrackable trackable : allTrackables) {
-                if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
-                    telemetry.addData("Visible Target", trackable.getName());
-                    targetVisible = true;
-
-                    // getUpdatedRobotLocation() will return null if no new information is available since
-                    // the last time that call was made, or if the trackable is not currently visible.
-                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
-                    if (robotLocationTransform != null) {
-                        lastLocation = robotLocationTransform;
+                        // getUpdatedRobotLocation() will return null if no new information is available since
+                        // the last time that call was made, or if the trackable is not currently visible.
+                        OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
+                        if (robotLocationTransform != null) {
+                            lastLocation = robotLocationTransform;
+                        }
+                        break;
                     }
-                    break;
+                }
+
+                float cord = 0;
+                // Provide feedback as to where the robot is located (if we know).
+                if (targetVisible) {
+                    // express position (translation) of robot in inches.
+                    VectorF translation = lastLocation.getTranslation();
+                    telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
+                            translation.get(0), translation.get(1), translation.get(2));
+                    cord = translation.get(1);
+
+                    // express the rotation of the robot in degrees.
+                    Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
+                    telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
+                } else {
+                    telemetry.addData("Visible Target", "none");
+                }
+                telemetry.update();
+
+                int midpoint = -40;
+
+                if (cord != 0 && cord > midpoint + 5) { //left most screen oriented bound
+                    goForward(scan);
+                } else if (cord != 0 && cord < midpoint - 5) { //right most screen oriented bound
+                    goBackward(scan);
+                } else {
+                    centered = true;
                 }
             }
-
-            float cord = 0;
-            // Provide feedback as to where the robot is located (if we know).
-            if (targetVisible) {
-                // express position (translation) of robot in inches.
-                VectorF translation = lastLocation.getTranslation();
-                telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
-                        translation.get(0), translation.get(1), translation.get(2));
-                cord = translation.get(1);
-
-                // express the rotation of the robot in degrees.
-                Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
-                telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
-            }
-            else {
-                telemetry.addData("Visible Target", "none");
-            }
-            telemetry.update();
-
-            int midpoint = -40;
-
-            if(cord != 0 && cord > midpoint + 5){ //left most screen oriented bound
-                goForward(0.1);
-            } else if(cord != 0 && cord < midpoint - 5){ //right most screen oriented bound
-                goBackward(0.1);
-            } else {centered = true;}
         }
 
         /*
@@ -408,7 +427,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         rotate(-85,1);
         goBackward(0.4);
-        sleep(300);
+        sleep(400);
         stopMotors();
 
 
@@ -416,10 +435,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         telemetry.addLine("frik mah life");
         telemetry.update();
-
-
     }
-
 
     /*
     ----------------------------imu methods----------------------------
@@ -485,7 +501,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
     ----------------------- movement methods ------------------
      */
 
-
     public void moveStone() {
         // move toward stone
         strafeLeft(0.5);
@@ -501,7 +516,7 @@ public class BlueSkystoneAuto extends LinearOpMode {
         /////////MOVING TO OTHER SIDE//////////
         strafeRight(1);
         sleep(700);
-        rotate((int)(0 - getAngle()),1);
+        //rotate((int)(0 - getAngle()),1);
         sleep(150);
     }
 
