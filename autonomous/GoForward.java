@@ -26,7 +26,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.firstinspires.ftc.teamcode.autonomous;
+package org.firstinspires.ftc.teamcode;
 
 import android.app.Activity;
 import android.graphics.Color;
@@ -297,15 +297,15 @@ public class GoForward extends LinearOpMode {
         stoneClamp.setPosition(1);
         sleep(500);
 
-        while (stoneGrabber.getPosition() < 1 - 0.005) {
+        while (stoneGrabber.getPosition() < 0.995) {
             stoneGrabber.setPosition(stoneGrabber.getPosition() + 0.0055);
         }
         sleep(50);
 
         strafeRight(0.5);
-        sleep(700);
+        sleep(500);
 
-        rotate((int)-getAngle(),1);
+        rotate((int)(-getAngle()*0.75),1);
         resetAngle();
 
         goBackward(0.5);
@@ -314,38 +314,72 @@ public class GoForward extends LinearOpMode {
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
         foundation.setPosition(0.95);
-        sleep(1300);
+        sleep(1200);
 
         stopMotors();
         sleep(50);
 
         strafeLeft(0.5); //stafe towards foundation
-        sleep(750);
+        sleep(850);
         stopMotors();
         sleep(50);
 
-        while (stoneGrabber.getPosition() > 0.025) { //lower arm
+        while (stoneGrabber.getPosition() > 0.45) { //lower arm
             stoneGrabber.setPosition(stoneGrabber.getPosition() - 0.0055);
         }
-        sleep(350);
-        stoneClamp.setPosition(0); //release stone
-        sleep(500);
+        sleep(100);
+        stoneClamp.setPosition(0.25); //release stone
+        sleep(275);
 
-        while (stoneGrabber.getPosition() < 1 - 0.005) { //raise arm
+        while (stoneGrabber.getPosition() < 0.995) { //raise arm
             stoneGrabber.setPosition(stoneGrabber.getPosition() + 0.0055);
         }
         sleep(50);
 
-        strafeRight(0.5); //stafe towards foundation
-        sleep(700);
+        strafeRight(0.5); //stafe away foundation
+        sleep(500);
         stopMotors();
         sleep(50);
 
-        rotate((int)-getAngle() - 87,1);
+        rotate((int)-getAngle() - 85,1);
         resetAngle();
 
         goBackward(0.5);
-        sleep(300);
+        sleep(225);
+        stopMotors();
+
+        foundation.setPosition(0.475);
+
+        sleep(750);
+
+        rotate(13, 1.5);
+        goForward(0.5);
+        sleep(600);
+
+        rotate(69+2, 1.5); // nice
+        stopMotors();
+
+        // to wall
+        goBackward(0.5);
+        sleep(600);
+        stopMotors();
+
+        /* maybe unneeded
+        strafeLeft(0.5);
+        sleep(500);
+        stopMotors();
+        */
+        foundation.setPosition(0.95);
+
+        // go to line
+        goForward(0.75);
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//goes until bridge
+            goForward(0.75);
+            telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
+        }
+        sweepLeft.setPosition(0);
+        sweepRight.setPosition(1);
+        foundation.setPosition(0.475);
         stopMotors();
 
         telemetry.addLine("frik mah life");
