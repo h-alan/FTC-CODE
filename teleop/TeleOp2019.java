@@ -29,6 +29,10 @@ public class TeleOp2019 extends ThreadOpMode {
     private Servo sweepLeft;
     private Servo sweepRight;
     private Servo foundation;
+    private Servo capStone;
+
+    private Servo stoneGrabber;
+    private Servo stoneClamp;
 
     //sensors
     private DigitalChannel armSensor;
@@ -62,6 +66,7 @@ public class TeleOp2019 extends ThreadOpMode {
         lift = hardwareMap.get(DcMotor.class, "lift");
         arm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
+        capStone = hardwareMap.get(Servo.class, "capStone");
 
         armSensor = hardwareMap.get(DigitalChannel.class, "armSensor");
         armSensor.setMode(DigitalChannel.Mode.INPUT);
@@ -75,23 +80,27 @@ public class TeleOp2019 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.b) {
-                    while (gamepad2.b) { // Intake
-                        sweepMotorLeft.setPower(0.75);
+                    while (gamepad2.b) { // Intake Right
                         sweepMotorRight.setPower(0.75);
-                        sweepLeft.setPosition(0);
                         sweepRight.setPosition(1);
                     }
-                } else if (gamepad2.a) { // In case of jam
+                } else if (gamepad2.a) { // Intake both
                     while (gamepad2.a) {
-                        sweepMotorLeft.setPower(-0.75);
-                        sweepMotorRight.setPower(-0.75);
+                        sweepLeft.setPosition(0);
+                        sweepRight.setPosition(1);
+                        sweepMotorLeft.setPower(0.75);
+                        sweepMotorRight.setPower(0.75);
                     }
                 } else if (gamepad2.y) { //Lock in
                     while (gamepad2.y) {
                         sweepLeft.setPosition(0);
                         sweepRight.setPosition(1);
                     }
-                } else {
+                } else if (gamepad2.x) { // intake left
+                    sweepLeft.setPosition(0);
+                    sweepMotorLeft.setPower(0.75);
+                }
+                else {
                     sweepMotorLeft.setPower(0);
                     sweepMotorRight.setPower(0);
                     sweepLeft.setPosition(0.5);
@@ -103,10 +112,11 @@ public class TeleOp2019 extends ThreadOpMode {
 
         // moves the claw
         registerThread(new TaskThread(new TaskThread.Actions() {
+            /// change thizs
             @Override
             public void loop() {
                 if (gamepad2.left_bumper) {
-                    claw.setPosition(0);
+                    claw.setPosition(0.3);
                 } else if (gamepad2.right_bumper) {
                     claw.setPosition(1);
                 }
@@ -119,16 +129,19 @@ public class TeleOp2019 extends ThreadOpMode {
             public void loop() {
                 if (gamepad2.right_trigger > 0) {
                     while (arm.getPosition() > 0.01) {
-                        arm.setPosition(arm.getPosition() - 0.0055);
+                        arm.setPosition(arm.getPosition() - 0.0040);
                     }
                 } else {
-                    arm.setPosition(0.95);
+                    while (arm.getPosition() < 0.95) {
+                        arm.setPosition(arm.getPosition() + 0.0055);
+                    }
                 }
             }
         }));
 
         // lift arm & foundation
         registerThread(new TaskThread(new TaskThread.Actions() {
+            // chanrfe this
             @Override
             public void loop() {
                 if (!armSensor.getState() && gamepad2.left_stick_y > 0) {
@@ -138,25 +151,30 @@ public class TeleOp2019 extends ThreadOpMode {
                 }
 
                 if (gamepad1.b) {
-                    foundation.setPosition(0.375);
+                    foundation.setPosition(0.475); // down
                 } else if (gamepad1.a) {
-                    foundation.setPosition(0.95);
+                    foundation.setPosition(0.95);   // up
                 }
+
+                if (gamepad2.right_stick_button) {
+                    capStone.setPosition(0);
+                }
+
             }
         }));
 
-        // lift arm & foundation
+        // motorPower
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
                 if (gamepad1.right_bumper) {
-                    motorPower += 0.05;
+                    motorPower += 0.25;
                     if (motorPower > 1) {
                         motorPower = 1;
                     }
                     for(int i = 0; i < 50000000; i++) { motorPower = motorPower;}
                 } else if (gamepad1.left_bumper) {
-                    motorPower -= 0.05;
+                    motorPower -= 0.25;
                     if (motorPower < 0) {
                         motorPower = 0;
                     }
