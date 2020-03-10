@@ -26,14 +26,21 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.firstinspires.ftc.teamcode.autonomous.blue;
+package org.firstinspires.ftc.teamcode.autonomous;
+
+import android.app.Activity;
+import android.graphics.Color;
+import android.view.View;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -59,8 +66,8 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.BACK;
 
-@Autonomous(name = "BlueStoneAuto", group = "BlueSide")
-public class BlueSkystoneAuto extends LinearOpMode {
+@Autonomous(name = "BLUE Stone Foundation", group = "BlueSide")
+public class BlueStoneFoundationAuto extends LinearOpMode {
     /*
     -------------ROBOT PARTS SETUP---------------
      */
@@ -79,11 +86,15 @@ public class BlueSkystoneAuto extends LinearOpMode {
     private Servo sweepRight;
     private Servo foundation;
     private Servo stoneGrabber;
+    private Servo stoneClamp;
 
     //sensors
     private DigitalChannel armSensor;
     private Rev2mDistanceSensor tof;
     private Rev2mDistanceSensor fronttof;
+
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
 
 
 
@@ -139,6 +150,12 @@ public class BlueSkystoneAuto extends LinearOpMode {
     private float phoneYRotate = 0;
     private float phoneZRotate = 0;
 
+    private final int DISTANCE_IN_BLOCKS = 220;
+    private final int STRAFE_TOWARDS_FOUNDATION = 407;
+    private final int GO_BACKWARDS_BEFORE_FOUNDATION = 435;
+    private final int FOUNDATION_DELAY = 1000;
+    private final int GO_FORWARD_AFTER_FOUNDATION = 0;
+
     /*
     --------------------------------------
      */
@@ -161,10 +178,18 @@ public class BlueSkystoneAuto extends LinearOpMode {
         lift = hardwareMap.get(DcMotor.class, "lift");
         arm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
+        foundation = hardwareMap.get(Servo.class, "foundation");
 
         stoneGrabber = hardwareMap.get(Servo.class, "stoneGrabber");
+        stoneClamp = hardwareMap.get(Servo.class, "stoneClamp");
         tof = hardwareMap.get(Rev2mDistanceSensor.class, "tof");
         fronttof = hardwareMap.get(Rev2mDistanceSensor.class, "fronttof");
+
+        // get a reference to the color sensor.
+        sensorColor = hardwareMap.get(ColorSensor.class, "color");
+
+        // get a reference to the distance sensor that shares the same name.
+        sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
 
         telemetry.setAutoClear(true);
 
@@ -174,63 +199,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
         --------------------------------------
         */
 
-        /*
-        -----------------VUFORIA SETUP----------------------
-        */
-
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
-
-        // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
-
-        parameters.vuforiaLicenseKey = VUFORIA_KEY;
-        parameters.cameraDirection = CAMERA_CHOICE;
-
-        //  Instantiate the Vuforia engine
-        vuforia = ClassFactory.getInstance().createVuforia(parameters);
-
-        // Load the data sets for the trackable objects. These particular data
-        // sets are stored in the 'assets' part of our application.
-        VuforiaTrackables targetsSkyStone = this.vuforia.loadTrackablesFromAsset("Skystone");
-
-        VuforiaTrackable stoneTarget = targetsSkyStone.get(0);
-        stoneTarget.setName("Stone Target");
-
-        // For convenience, gather together all the trackable objects in one easily-iterable collection */
-        List<VuforiaTrackable> allTrackables = new ArrayList<VuforiaTrackable>();
-        allTrackables.addAll(targetsSkyStone);
-
-        // Set the position of the Stone Target.  Since it's not fixed in position, assume it's at the field origin.
-        stoneTarget.setLocation(OpenGLMatrix
-                .translation(0, 0, stoneZ)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
-
-        // We need to rotate the camera around it's long axis to bring the correct camera forward.
-        if (CAMERA_CHOICE == BACK) {
-            phoneYRotate = -90;
-        } else {
-            phoneYRotate = 90;
-        }
-
-        // Rotate the phone vertical about the X axis if it's in portrait mode
-        if (PHONE_IS_PORTRAIT) {
-            phoneXRotate = 90;
-        }
-
-        // Next, translate the camera lens to where it is on the robot.
-        // In this example, it is centered (left to right), but forward of the middle of the robot, and above ground level.
-        final float CAMERA_FORWARD_DISPLACEMENT = 4.0f * mmPerInch;   // eg: Camera is 4 Inches in front of robot center
-        final float CAMERA_VERTICAL_DISPLACEMENT = 8.0f * mmPerInch;   // eg: Camera is 8 Inches above ground
-        final float CAMERA_LEFT_DISPLACEMENT = 0;     // eg: Camera is ON the robot's center line
-
-        OpenGLMatrix robotFromCamera = OpenGLMatrix
-                .translation(CAMERA_FORWARD_DISPLACEMENT, CAMERA_LEFT_DISPLACEMENT, CAMERA_VERTICAL_DISPLACEMENT)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, YZX, DEGREES, phoneYRotate, phoneZRotate, phoneXRotate));
-
-        /**  Let all the trackable listeners know where the phone is.  */
-        for (VuforiaTrackable trackable : allTrackables) {
-            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(robotFromCamera, parameters.cameraDirection);
-        }
 
         /*
         ------------------------IMU SETUP------------------------
@@ -266,172 +234,178 @@ public class BlueSkystoneAuto extends LinearOpMode {
         ----------------------------------------------------------------
         */
 
-        /*
-        --------------------------STONE LOCATOR-------------------------
-        */
         sweepLeft.setPosition(0);
         sweepRight.setPosition(1);
         // wait for start command.
+
+        // hsvValues is an array that will hold the hue, saturation, and value information.
+        float hsvValues[] = {0F, 0F, 0F};
+
+        // values is a reference to the hsvValues array.
+        final float values[] = hsvValues;
+
+        // sometimes it helps to multiply the raw RGB values with a scale factor
+        // to amplify/attentuate the measured values.
+        final double SCALE_FACTOR = 255;
+
+        // get a reference to the RelativeLayout so we can change the background
+        // color of the Robot Controller app to match the hue detected by the RGB sensor.
+        int relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
+        final View relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
+
+        // wait for the start button to be pressed.
+        stoneGrabber.setPosition(0.9);
+        stoneClamp.setPosition(0.6);
         waitForStart();
 
         // move away from wall
-        goForward(0.3);
-        while(fronttof.getDistance(DistanceUnit.MM) > 370){
-            goForward(0.3);
+        goForward(0.2);
+        while(fronttof.getDistance(DistanceUnit.MM) > DISTANCE_IN_BLOCKS){
+            goForward(0.2);
             telemetry.addData("Distance", fronttof.getDistance(DistanceUnit.MM));
             telemetry.update();
         }
+        telemetry.update();
+
         stopMotors();
         sleep(50);
 
-        rotate(-87,1);
+        rotate(-80,0.75);
         resetAngle();
 
-        targetsSkyStone.activate();
-
-        targetVisible = false;
-        double scan = 0.1;
-        goForward(scan);
-
-        double startTime = System.currentTimeMillis();
-        boolean foundStone = false;
-
-        while (!targetVisible) {
-            // check all the trackable targets to see which one (if any) is visible.
-            for (VuforiaTrackable trackable : allTrackables) {
-                if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
-                    telemetry.addData("Visible Target", trackable.getName());
-                    targetVisible = true;
-                    foundStone = true;
-
-                    // getUpdatedRobotLocation() will return null if no new information is available since
-                    // the last time that call was made, or if the trackable is not currently visible.
-                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
-                    if (robotLocationTransform != null) {
-                        lastLocation = robotLocationTransform;
-                    }
-                    break;
-                }
-            }
-
-            // Provide feedback as to where the robot is located (if we know).
-            if (targetVisible) {
-                // express position (translation) of robot in inches.
-                VectorF translation = lastLocation.getTranslation();
-                telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
-                        translation.get(0), translation.get(1), translation.get(2));
-
-                // express the rotation of the robot in degrees.
-                Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
-                telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
-            }
-            else {
-                telemetry.addData("Visible Target", "none");
-            }
+        Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
+                (int) (sensorColor.green() * SCALE_FACTOR),
+                (int) (sensorColor.blue() * SCALE_FACTOR),
+                hsvValues);
+        telemetry.addData("Hue", hsvValues[0]);
+        while (hsvValues[0] < 99) {
+            goForward(0.25);
+            Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
+                    (int) (sensorColor.green() * SCALE_FACTOR),
+                    (int) (sensorColor.blue() * SCALE_FACTOR),
+                    hsvValues);
+            telemetry.addData("Hue", hsvValues[0]);
             telemetry.update();
-
-            /////////////////
-            if(System.currentTimeMillis() - startTime > 12000) {
-                break;
-            }
         }
+        telemetry.update();
+
         stopMotors();
-        /*
-        ----------------------------------------------------------------
-        */
+        sleep(50);
 
-        /*
-        --------------------------Centering STONE-------------------------
-        */
-        boolean centered = false;
-        if(foundStone) {
-            while (!centered) {
-                // check all the trackable targets to see which one (if any) is visible.
-                for (VuforiaTrackable trackable : allTrackables) {
-                    if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
-                        telemetry.addData("Visible Target", trackable.getName());
-                        targetVisible = true;
 
-                        // getUpdatedRobotLocation() will return null if no new information is available since
-                        // the last time that call was made, or if the trackable is not currently visible.
-                        OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
-                        if (robotLocationTransform != null) {
-                            lastLocation = robotLocationTransform;
-                        }
-                        break;
-                    }
-                }
-
-                float cord = 0;
-                // Provide feedback as to where the robot is located (if we know).
-                if (targetVisible) {
-                    // express position (translation) of robot in inches.
-                    VectorF translation = lastLocation.getTranslation();
-                    telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
-                            translation.get(0), translation.get(1), translation.get(2));
-                    cord = translation.get(1);
-
-                    // express the rotation of the robot in degrees.
-                    Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
-                    telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
-                } else {
-                    telemetry.addData("Visible Target", "none");
-                }
-                telemetry.update();
-
-                int midpoint = -40;
-
-                if (cord != 0 && cord > midpoint + 5) { //left most screen oriented bound
-                    goForward(scan);
-                } else if (cord != 0 && cord < midpoint - 5) { //right most screen oriented bound
-                    goBackward(scan);
-                } else {
-                    centered = true;
-                }
-            }
+        //lowers stone arm
+        stoneClamp.setPosition(0);
+        sleep(350);
+        while (stoneGrabber.getPosition() > 0.005) {
+            stoneGrabber.setPosition(stoneGrabber.getPosition() - 0.0055);
         }
 
-        /*
-        ---------------------------------------------------------------------
-        */
-
-        /*
-        ------------------------OBTAINING STONE--------------------------
-        */
-
-
-        moveStone();
+        strafeLeft(0.5);
+        sleep(350);
         stopMotors();
-        // deactivate our camera
-        targetsSkyStone.deactivate();
 
-        goBackward(0.7);
-        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
+        // clamp stone
+        stoneClamp.setPosition(1);
+        sleep(500);
+
+        while (stoneGrabber.getPosition() < 0.995) {
+            stoneGrabber.setPosition(stoneGrabber.getPosition() + 0.0055);
+        }
+        sleep(50);
+
+        strafeRight(0.5);
+        sleep(250);
+
+        rotate((int)(-getAngle()*0.5),0.35);
+        resetAngle();
+
+        goBackward(0.5);
+        while (tof.getDistance(DistanceUnit.MM) > 400) { // go past bridge
             goBackward(0.5);
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
+        foundation.setPosition(0.95);
+        sleep(1200);
+
+        //CROSSES BRIDGE
+
+        stopMotors();
+        sleep(50);
+
+        strafeLeft(0.5); //stafe towards foundation
+        sleep(STRAFE_TOWARDS_FOUNDATION);
+        stopMotors();
+        sleep(50);
+
+        while (stoneGrabber.getPosition() > 0.45) { //lower arm
+            stoneGrabber.setPosition(stoneGrabber.getPosition() - 0.0055);
+        }
+        sleep(100);
+        stoneClamp.setPosition(0.25); //release stone
+        sleep(275);
+
+        while (stoneGrabber.getPosition() < 0.995) { //raise arm
+            stoneGrabber.setPosition(stoneGrabber.getPosition() + 0.0055);
+        }
+        sleep(50);
+
+        stoneClamp.setPosition(0.6);
+        strafeRight(0.5); //stafe away foundation
+        sleep(300);
+        stopMotors();
+        sleep(50);
+
+        rotate(-85,0.75);
+        resetAngle();
+
+        goBackward(0.25);
+        sleep(GO_BACKWARDS_BEFORE_FOUNDATION);
+        stopMotors();
+
+        sleep(100);
+        foundation.setPosition(0.475);
+        sleep(FOUNDATION_DELAY);
+
+        goForward(0.5);
+        sleep(GO_FORWARD_AFTER_FOUNDATION);
+
+        //
+        //
+        //
+        //
+        //
+        //
+        //
+
+        rotate(13, 1.5);
+        goForward(0.5);
+        sleep(675);
+
+        rotate(69+2, 1.5); // nice
+        stopMotors();
+
+        // to wall
+        goBackward(0.5);
+        sleep(600); //PERHAPS CHANGE TO 400?
+        stopMotors();
+
+        /* maybe unneeded
+        strafeLeft(0.5);
         sleep(500);
         stopMotors();
-        unlatchStone();
-        sleep(500);
+        */
+        foundation.setPosition(0.95);
 
         // go to line
-        goForward(0.5);
-        while (tof.getDistance(DistanceUnit.MM) > 400) {//lowers the robot
-            goForward(0.5);
+        goForward(0.75);
+        while (tof.getDistance(DistanceUnit.MM) > 400) {//goes until bridge
+            goForward(0.75);
             telemetry.addData("range", String.format("%.01f mm", tof.getDistance(DistanceUnit.MM)));
         }
-
         sweepLeft.setPosition(0);
         sweepRight.setPosition(1);
-
-        rotate(-85,1);
-        goBackward(0.4);
-        sleep(400);
+        foundation.setPosition(0.475);
         stopMotors();
-
-
-        ///////////////////////////////////*/
 
         telemetry.addLine("frik mah life");
         telemetry.update();
@@ -658,9 +632,6 @@ public class BlueSkystoneAuto extends LinearOpMode {
         sweepMotorRight.setPower(0);
     }
 
-    /*
-    ---------------------------------------------
-     */
 
     public void listhardware() {
         telemetry.setAutoClear(false);
@@ -674,4 +645,5 @@ public class BlueSkystoneAuto extends LinearOpMode {
 
         telemetry.setAutoClear(true);
     }
+}
 }
