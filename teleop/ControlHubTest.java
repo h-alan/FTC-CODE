@@ -58,15 +58,15 @@ public class ControlHubTest extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            if (gamepad1.left_stick_x < -0.85) {
+            if (gamepad1.left_stick_x < -0.7) {
                 strafeLeft(motorPower);
-            } else if (gamepad1.left_stick_x > 0.85) {
+            } else if (gamepad1.left_stick_x > 0.7) {
                 strafeRight(motorPower);
             } else {
-                frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-                frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-                backRight.setPower(motorPower * (-this.gamepad1.left_stick_y + this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-                backLeft.setPower(motorPower * (this.gamepad1.left_stick_y + this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+                frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+                frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+                backRight.setPower(motorPower * (-this.gamepad1.left_stick_y /* +  this.gamepad1.left_stick_x */- this.gamepad1.right_stick_x));
+                backLeft.setPower(motorPower * (this.gamepad1.left_stick_y /* + this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
             }
             int rings;
             if(bottom.getDistance(DistanceUnit.MM) < 200) {
@@ -90,17 +90,17 @@ public class ControlHubTest extends LinearOpMode {
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(-tgtPower);
+        frontRight.setPower(tgtPower);
         frontLeft.setPower(tgtPower);
-        backRight.setPower(tgtPower);
+        backRight.setPower(-tgtPower);
         backLeft.setPower(-tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
+        frontRight.setPower(-tgtPower);
         frontLeft.setPower(-tgtPower);
-        frontRight.setPower(tgtPower);
+        backRight.setPower(tgtPower);
         backLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower);
     }
 }
 
