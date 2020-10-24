@@ -96,6 +96,11 @@ public class EncoderTest extends LinearOpMode {
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Status", "Resetting Encoders");    //
         telemetry.update();
+        
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+        backRight = hardwareMap.get(DcMotor.class, "backRight");
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
 
         //was: robot.right or something. if you ever need to change from there again
         frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER); //!!!!!!!!!!!!!
