@@ -79,9 +79,9 @@ public class EncoderTest extends LinearOpMode {
     static final double     COUNTS_PER_MOTOR_REV    = 383.6;    // eg: TETRIX Motor Encoder
     static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // This is < 1.0 if geared UP... maybe 1??
     static final double     WHEEL_DIAMETER_INCHES   = 10 / 2.54;     // For figuring circumference
-    static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
-                                                      (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double     DRIVE_SPEED             = 0.6;
+    static final double     COUNTS_PER_INCH         = (10.25/12)*(COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
+            (WHEEL_DIAMETER_INCHES * 3.1415);
+    static final double     DRIVE_SPEED             = .4;
     static final double     TURN_SPEED              = 0.5;
 
     @Override
@@ -96,7 +96,7 @@ public class EncoderTest extends LinearOpMode {
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Status", "Resetting Encoders");    //
         telemetry.update();
-        
+
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
@@ -115,8 +115,8 @@ public class EncoderTest extends LinearOpMode {
 
         // Send telemetry message to indicate successful Encoder reset
         telemetry.addData("Path0",  "Starting at %7d :%7d",
-                          frontLeft.getCurrentPosition(),
-                          frontRight.getCurrentPosition());
+                frontLeft.getCurrentPosition(),
+                frontRight.getCurrentPosition());
         telemetry.update();
 
         // Wait for the game to start (driver presses PLAY)
@@ -125,7 +125,7 @@ public class EncoderTest extends LinearOpMode {
         /* HERE IS WHERE THINGS ACTUALLY HAPPEN.. PUT YOUR DESIRED DISTANCES IN HERE */
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED,  48,  48, 48, 48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
+        encoderDrive(DRIVE_SPEED,  12,  12, 12, 12, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
         //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
         //encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
 
@@ -160,7 +160,7 @@ public class EncoderTest extends LinearOpMode {
             //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
             newFrontLeftTarget = frontLeft.getCurrentPosition() + (int)(-frontLeftInches * COUNTS_PER_INCH);
             newFrontRightTarget = frontRight.getCurrentPosition() + (int)(frontRightInches * COUNTS_PER_INCH);
-            newBackLeftTarget = backLeft.getCurrentPosition() + (int)(-backLeftInches * COUNTS_PER_INCH);
+            newBackLeftTarget = backLeft.getCurrentPosition() + (int)( -backLeftInches * COUNTS_PER_INCH);
             newBackRightTarget = backRight.getCurrentPosition() + (int)(backRightInches * COUNTS_PER_INCH);
             frontLeft.setTargetPosition(newFrontLeftTarget);
             frontRight.setTargetPosition(newFrontRightTarget);
@@ -187,14 +187,14 @@ public class EncoderTest extends LinearOpMode {
             // However, if you require that BOTH motors have finished their moves before the robot continues
             // onto the next step, use (isBusy() || isBusy()) in the loop test.
             while (opModeIsActive() &&
-                   (runtime.seconds() < timeoutS) &&
-                   (frontLeft.isBusy() && frontRight.isBusy())) { //might need to change this to all being busy..
+                    (runtime.seconds() < timeoutS) &&
+                    (frontLeft.isBusy() && frontRight.isBusy())) { //might need to change this to all being busy..
 
                 // Display it for the driver.
-                telemetry.addData("Path1",  "Running to %7d :%7d", newFrontLeftTarget,  newFrontRightTarget);
-                telemetry.addData("Path2",  "Running at %7d :%7d",
-                                            frontLeft.getCurrentPosition(),
-                                            frontRight.getCurrentPosition());
+                telemetry.addData("Path1",  "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget,  newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
+                telemetry.addData("Path2",  "Running at %7d :%7d : %7d : %7d",
+                        frontLeft.getCurrentPosition(),
+                        frontRight.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition());
                 telemetry.update();
             }
 
