@@ -20,32 +20,32 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
  * This file illustrates the concept of driving a path based on encoder counts.
  * It uses the common Pushbot hardware class to define the drive on the robot.
  * The code is structured as a LinearOpMode
- *
+ * <p>
  * The code REQUIRES that you DO have encoders on the wheels,
- *   otherwise you would use: PushbotAutoDriveByTime;
- *
- *  This code ALSO requires that the drive Motors have been configured such that a positive
- *  power command moves them forwards, and causes the encoders to count UP.
- *
- *   The desired path in this example is:
- *   - Drive forward for 48 inches
- *   - Spin right for 12 Inches
- *   - Drive Backwards for 24 inches
- *   - Stop and close the claw.
- *
- *  The code is written using a method called: encoderDrive(speed, leftInches, rightInches, timeoutS)
- *  that performs the actual movement.
- *  This methods assumes that each movement is relative to the last stopping place.
- *  There are other ways to perform encoder based moves, but this method is probably the simplest.
- *  This code uses the RUN_TO_POSITION mode to enable the Motor controllers to generate the run profile
- *
+ * otherwise you would use: PushbotAutoDriveByTime;
+ * <p>
+ * This code ALSO requires that the drive Motors have been configured such that a positive
+ * power command moves them forwards, and causes the encoders to count UP.
+ * <p>
+ * The desired path in this example is:
+ * - Drive forward for 48 inches
+ * - Spin right for 12 Inches
+ * - Drive Backwards for 24 inches
+ * - Stop and close the claw.
+ * <p>
+ * The code is written using a method called: encoderDrive(speed, leftInches, rightInches, timeoutS)
+ * that performs the actual movement.
+ * This methods assumes that each movement is relative to the last stopping place.
+ * There are other ways to perform encoder based moves, but this method is probably the simplest.
+ * This code uses the RUN_TO_POSITION mode to enable the Motor controllers to generate the run profile
+ * <p>
  * Use Android Studios to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@Autonomous(name="EncoderandCameraTest", group="Linear OpMode")
+@Autonomous(name = "EncoderandCameraTest", group = "Linear OpMode")
 //@Disabled
-public class EncoderAndCam extends LinearOpMode {
+public class CameraDetection extends LinearOpMode {
 
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Quad";
@@ -79,22 +79,21 @@ public class EncoderAndCam extends LinearOpMode {
     private TFObjectDetector tfod;
 
 
-
     /* Declare OpMode members. */
     //HardwarePushbot         robot   = new HardwarePushbot();   // Use a Pushbot's hardware
-    private ElapsedTime     runtime = new ElapsedTime();
+    private ElapsedTime runtime = new ElapsedTime();
     protected DcMotor frontRight;
     protected DcMotor frontLeft;
     protected DcMotor backRight;
     protected DcMotor backLeft;
 
-    static final double     COUNTS_PER_MOTOR_REV    = 383.6;    // eg: TETRIX Motor Encoder
-    static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // This is < 1.0 if geared UP... maybe 1??
-    static final double     WHEEL_DIAMETER_INCHES   = 10 / 2.54;     // For figuring circumference
-    static final double     COUNTS_PER_INCH         = (12/9.6)/* (12/10.25) */*(COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
+    static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
+    static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
+    static final double WHEEL_DIAMETER_INCHES = 10 / 2.54;     // For figuring circumference
+    static final double COUNTS_PER_INCH = (12 / 9.6)/* (12/10.25) */ * (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double     DRIVE_SPEED             = .3;
-    static final double     TURN_SPEED              = 0.5;
+    static final double DRIVE_SPEED = .5;
+    static final double TURN_SPEED = 0.5;
 
     @Override
     public void runOpMode() {
@@ -147,7 +146,7 @@ public class EncoderAndCam extends LinearOpMode {
         backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Send telemetry message to indicate successful Encoder reset
-        telemetry.addData("Path0",  "Starting at %7d :%7d",
+        telemetry.addData("Path0", "Starting at %7d :%7d",
                 frontLeft.getCurrentPosition(),
                 frontRight.getCurrentPosition());
         telemetry.update();
@@ -155,15 +154,16 @@ public class EncoderAndCam extends LinearOpMode {
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
-                //put encoder stuff IN HERE; while opModeisActive is for everything
+        //put encoder stuff IN HERE; while opModeisActive is for everything
         //strafe right 8 inches
 
-        encoderDrive(DRIVE_SPEED,  40,  40, 40, 40, 5.0);
+        encoderDrive(DRIVE_SPEED, 40, 40, 40, 40, 5.0);
 
-        sleep(1000);
+        sleep(500);
 
+        String objectsFound = "None";
 
-        for (int j = 0; j<5000000; j++) {
+        for (int j = 0; j < 5000000; j++) {
             if (tfod != null) { //tfod !=null is just for the camera thing
                 // getUpdatedRecognitions() will return null if no new information is available since
                 // the last time that call was made.
@@ -178,34 +178,32 @@ public class EncoderAndCam extends LinearOpMode {
                                 recognition.getLeft(), recognition.getTop());
                         telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
                                 recognition.getRight(), recognition.getBottom());
+                        objectsFound = recognition.getLabel();
                     }
                     telemetry.update();
                 }
             }
         }
 
+        if (objectsFound.equals("None")) {
+            encoderDrive(DRIVE_SPEED, 37, 37, 37, 37, 5.0);
+        } else if (objectsFound.equals("Single")) {
+            encoderDrive(DRIVE_SPEED, 67, 67, 67, 67, 5.0);
+            encoderDrive(DRIVE_SPEED, -20, 20, 20, -20, 5.0); // strafing left
+        } else {
+            encoderDrive(DRIVE_SPEED, 95, 95, 95, 95, 5.0);
+        }
 
-        /* HERE IS WHERE THINGS ACTUALLY HAPPEN.. PUT YOUR DESIRED DISTANCES IN HERE */
-        // Step through each leg of the path,
-        // Note: Reverse movement is obtained by setting a negative distance (not speed)
-          // S1: Forward 47 Inches with 5 Sec timeout
-        //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        //encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
-
-
-        //robot.leftClaw.setPosition(1.0);            // S4: Stop and close the claw.
-        //robot.rightClaw.setPosition(0.0);
-        sleep(1000);     // pause for servos to move
+        sleep(500);     // pause for servos to move
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
-
-        // WHERE TO PUT THIS?!?!?!??! good here; turns off camera
 
         if (tfod != null) {
             tfod.shutdown();
         }
     }
+
     private void initVuforia() {
         /*
          * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
@@ -254,10 +252,10 @@ public class EncoderAndCam extends LinearOpMode {
 
             // Determine new target position, and pass to motor controller
             //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
-            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int)(-frontLeftInches * COUNTS_PER_INCH);
-            newFrontRightTarget = frontRight.getCurrentPosition() + (int)(frontRightInches * COUNTS_PER_INCH);
-            newBackLeftTarget = backLeft.getCurrentPosition() + (int)( -backLeftInches * COUNTS_PER_INCH);
-            newBackRightTarget = backRight.getCurrentPosition() + (int)(backRightInches * COUNTS_PER_INCH);
+            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-frontLeftInches * COUNTS_PER_INCH);
+            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (frontRightInches * COUNTS_PER_INCH);
+            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-backLeftInches * COUNTS_PER_INCH);
+            newBackRightTarget = backRight.getCurrentPosition() + (int) (backRightInches * COUNTS_PER_INCH);
             frontLeft.setTargetPosition(newFrontLeftTarget);
             frontRight.setTargetPosition(newFrontRightTarget);
             backLeft.setTargetPosition(newBackLeftTarget);
@@ -287,8 +285,8 @@ public class EncoderAndCam extends LinearOpMode {
                     (frontLeft.isBusy() && frontRight.isBusy())) { //might need to change this to all being busy..
 
                 // Display it for the driver.
-                telemetry.addData("Path1",  "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget,  newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
-                telemetry.addData("Path2",  "Running at %7d :%7d : %7d : %7d",
+                telemetry.addData("Path1", "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
+                telemetry.addData("Path2", "Running at %7d :%7d : %7d : %7d",
                         frontLeft.getCurrentPosition(),
                         frontRight.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition());
                 telemetry.update();
