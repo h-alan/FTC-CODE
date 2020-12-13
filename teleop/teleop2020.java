@@ -80,39 +80,20 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if (gamepad1.b) {
-                    wheelRack.setPower(1);
-                    belt.setPower(1);
-                }
+                boolean changed = false;
+                if(gamepad1.b && !changed) {
+                    if(wheelRack.getPower() == 0) {
+                        wheelRack.setPower(1);
+                        belt.setPower(-1);
+                    }
+                    else {
+                        wheelRack.setPower(0);
+                        belt.setPower(0);
+                    }
+                    changed = true;
+                } else if(!gamepad1.b) changed = false;
             }
         }));
-
-        // lift arm & foundation
-
-
-        // motorPower
-        /*
-        registerThread(new TaskThread(new TaskThread.Actions() {
-            @Override
-            public void loop() {
-                if (gamepad1.right_bumper) {
-                    motorPower += 0.25;
-                    if (motorPower > 1) {
-                        motorPower = 1;
-                    }
-                    for(int i = 0; i < 50000000; i++) { motorPower = motorPower;}
-                } else if (gamepad1.left_bumper) {
-                    motorPower -= 0.25;
-                    if (motorPower < 0) {
-                        motorPower = 0;
-                    }
-                    for(int i = 0; i < 50000000; i++) {motorPower = motorPower;}
-                }
-                motorPower = Math.round(motorPower * 100.0) / 100.0;
-            }
-        }));
-
-         */
     }
 
 
