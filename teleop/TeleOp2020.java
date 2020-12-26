@@ -21,12 +21,16 @@ public class TeleOp2020 extends ThreadOpMode {
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
+
+    // sweeping motors
     private DcMotor wheelRack;
     private DcMotor belt;
 
+    private DcMotor launcher;
 
     // servos
     private Servo wobbleArm;
+    private Servo launcherPush;
 
 
     //sensors
@@ -48,14 +52,16 @@ public class TeleOp2020 extends ThreadOpMode {
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+
+        launcher = hardwareMap.get(DcMotor.class, "launcher");
+        launcherPush = hardwareMap.get(Servo.class, "launcherPush");
+
         wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
         belt = hardwareMap.get(DcMotor.class, "belt");
 
-
         // Player 2
         //arm is god servo
-        wobbleArm = hardwareMap.get(Servo.class, "arm");
-
+        //wobbleArm = hardwareMap.get(Servo.class, "arm");
 
         /*
         ----------------------------------------------
@@ -69,7 +75,7 @@ public class TeleOp2020 extends ThreadOpMode {
                     while (wobbleArm.getPosition() > 0.01) {
                         wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
                     }
-                } else if (gamepad1.left_trigger > .05){
+                } else if (gamepad1.left_trigger > .05) {
                     while (wobbleArm.getPosition() < .95) {
                         wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
                     }
@@ -81,21 +87,42 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 boolean changed = false;
-                if(gamepad1.b && !changed) {
-                    if(wheelRack.getPower() == 0) {
+                if (gamepad1.b && !changed) {
+                    if (wheelRack.getPower() == 0) {
                         wheelRack.setPower(1);
-                        belt.setPower(-1);
-                    }
-                    else {
+                        belt.setPower(0.5);
+                    } else {
                         wheelRack.setPower(0);
                         belt.setPower(0);
                     }
                     changed = true;
-                } else if(!gamepad1.b) changed = false;
+                } else if (!gamepad1.b) changed = false;
+            }
+        }));
+
+        // launcher controls
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad1.a) {
+                    launcher.setPower(1);
+                } else {
+                    launcher.setPower(0);
+                }
+            }
+        }));
+
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad1.x) {
+                    launcherPush.setPosition(0.2);
+                } else {
+                    launcherPush.setPosition(0);
+                }
             }
         }));
     }
-
 
     // moving motors and checking for strafes
     @Override
