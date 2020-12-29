@@ -32,7 +32,6 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo wobbleArm;
     private Servo launcherPush;
 
-
     //sensors
     //private DigitalChannel ringSensor;
 
@@ -71,15 +70,17 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if (gamepad1.right_trigger > .05) {
+                /*
+                if (gamepad2.right_trigger > .05) {
                     while (wobbleArm.getPosition() > 0.01) {
                         wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
                     }
-                } else if (gamepad1.left_trigger > .05) {
+                } else if (gamepad2.left_trigger > .05) {
                     while (wobbleArm.getPosition() < .95) {
                         wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
                     }
                 }
+                */
             }
         }));
 
@@ -87,7 +88,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 boolean changed = false;
-                if (gamepad1.b && !changed) {
+                if (gamepad2.b && !changed) {
                     if (wheelRack.getPower() == 0) {
                         wheelRack.setPower(1);
                         belt.setPower(0.5);
@@ -104,8 +105,8 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if (gamepad1.a) {
-                    launcher.setPower(1);
+                if (gamepad2.a) {
+                    launcher.setPower(0.8);
                 } else {
                     launcher.setPower(0);
                 }
@@ -115,10 +116,10 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if (gamepad1.x) {
-                    launcherPush.setPosition(0.2);
+                if (gamepad2.right_trigger > 0.85) {
+                    launcherPush.setPosition(0.4);
                 } else {
-                    launcherPush.setPosition(0);
+                    launcherPush.setPosition(0.1);
                 }
             }
         }));
@@ -132,10 +133,10 @@ public class TeleOp2020 extends ThreadOpMode {
         } else if (gamepad1.left_stick_x > 0.85) {
             strafeRight(motorPower);
         } else {
-            frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-            frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-            backRight.setPower(motorPower * -(-this.gamepad1.left_stick_y + this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-            backLeft.setPower(motorPower * -(this.gamepad1.left_stick_y + this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+            frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+            frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+            backRight.setPower(motorPower * (-this.gamepad1.left_stick_y /* +  this.gamepad1.left_stick_x */- this.gamepad1.right_stick_x));
+            backLeft.setPower(motorPower * (this.gamepad1.left_stick_y /* + this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
         }
         telemetry.addData("Status", "Running");
         telemetry.addData("Motor Power: ", motorPower);
@@ -143,17 +144,16 @@ public class TeleOp2020 extends ThreadOpMode {
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(-tgtPower);
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(tgtPower);
         backRight.setPower(-tgtPower);
         backLeft.setPower(-tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
-        frontLeft.setPower(tgtPower);
-        frontRight.setPower(tgtPower);
-        backLeft.setPower(tgtPower);
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
         backRight.setPower(tgtPower);
-
+        backLeft.setPower(tgtPower);
     }
 }
