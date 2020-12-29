@@ -32,9 +32,6 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo wobbleArm;
     private Servo launcherPush;
 
-    //sensors
-    //private DigitalChannel ringSensor;
-
     double motorPower = 0.75;
     /*
     --------------------------------------
@@ -87,17 +84,16 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                boolean changed = false;
-                if (gamepad2.b && !changed) {
-                    if (wheelRack.getPower() == 0) {
-                        wheelRack.setPower(1);
-                        belt.setPower(0.5);
-                    } else {
-                        wheelRack.setPower(0);
-                        belt.setPower(0);
-                    }
-                    changed = true;
-                } else if (!gamepad1.b) changed = false;
+                if (gamepad2.left_stick_y > 0.2) {
+                    wheelRack.setPower(1);
+                    belt.setPower(0.5);
+                } else if (gamepad2.left_stick_y < -0.2) {
+                    wheelRack.setPower(-1);
+                    belt.setPower(-0.5);
+                } else {
+                    wheelRack.setPower(0);
+                    belt.setPower(0);
+                }
             }
         }));
 
@@ -105,8 +101,8 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                if (gamepad2.a) {
-                    launcher.setPower(0.8);
+                if (gamepad2.left_trigger > 0.85) {
+                    launcher.setPower(0.72);
                 } else {
                     launcher.setPower(0);
                 }
@@ -133,10 +129,10 @@ public class TeleOp2020 extends ThreadOpMode {
         } else if (gamepad1.left_stick_x > 0.85) {
             strafeRight(motorPower);
         } else {
-            frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
-            frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
-            backRight.setPower(motorPower * (-this.gamepad1.left_stick_y /* +  this.gamepad1.left_stick_x */- this.gamepad1.right_stick_x));
-            backLeft.setPower(motorPower * (this.gamepad1.left_stick_y /* + this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+            frontRight.setPower(motorPower * (this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+            frontLeft.setPower(motorPower * (-this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+            backRight.setPower(motorPower * (this.gamepad1.left_stick_y /* +  this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
+            backLeft.setPower(motorPower * (-this.gamepad1.left_stick_y /* + this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
         }
         telemetry.addData("Status", "Running");
         telemetry.addData("Motor Power: ", motorPower);
