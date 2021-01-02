@@ -9,7 +9,6 @@ import org.firstinspires.ftc.teamcode.thread.TaskThread;
 import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
 
 //Extend ThreadOpMode rather than OpMode
-//Copied and Pasted TeleOp2019
 @TeleOp(name = "Real TeleOp 2020", group = "Threaded Opmode")
 public class TeleOp2020 extends ThreadOpMode {
 
@@ -33,6 +32,7 @@ public class TeleOp2020 extends ThreadOpMode {
     // servos
     private Servo wobbleArm;
     private Servo launcherPush;  // moves the rings into the launching motor
+    private Servo claw;
 
     double motorPower = 0.75;
     double launcherPower = 0.75;
@@ -59,7 +59,8 @@ public class TeleOp2020 extends ThreadOpMode {
         wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
         belt = hardwareMap.get(DcMotor.class, "belt");
         //arm is god servo
-        //wobbleArm = hardwareMap.get(Servo.class, "arm");
+        wobbleArm = hardwareMap.get(Servo.class, "arm");
+        claw = hardwareMap.get(Servo.class, "claw");
 
         /*
         ----------------------------------------------
@@ -69,17 +70,27 @@ public class TeleOp2020 extends ThreadOpMode {
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-                /*
-                if (gamepad2.right_trigger > .05) {
+                if (gamepad2.x) {
                     while (wobbleArm.getPosition() > 0.01) {
                         wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
                     }
-                } else if (gamepad2.left_trigger > .05) {
+                } else if (gamepad2.y) {
                     while (wobbleArm.getPosition() < .95) {
                         wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
                     }
                 }
-                */
+            }
+        }));
+
+        // open and close claw
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad2.a) {
+                    claw.setPosition(0);
+                } else if (gamepad2.b) {
+                    claw.setPosition(1);
+                }
             }
         }));
 
