@@ -9,6 +9,7 @@ import org.firstinspires.ftc.teamcode.thread.TaskThread;
 import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
 
 //Extend ThreadOpMode rather than OpMode
+//Copied and Pasted TeleOp2019
 @TeleOp(name = "Real TeleOp 2020", group = "Threaded Opmode")
 public class TeleOp2020 extends ThreadOpMode {
 
@@ -62,6 +63,8 @@ public class TeleOp2020 extends ThreadOpMode {
         wobbleArm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
 
+        wobbleArm.setPosition(1);
+        wobbleArm.setPosition(wobbleArm.getPosition());
         /*
         ----------------------------------------------
         */
@@ -71,12 +74,13 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.x) {
-                    while (wobbleArm.getPosition() > 0.01) {
-                        wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
-                    }
-                } else if (gamepad2.y) {
-                    while (wobbleArm.getPosition() < .95) {
+                    while (wobbleArm.getPosition() < .9) {
                         wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+                    }
+
+                } else {
+                    while (wobbleArm.getPosition() > 0.35) {
+                        wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
                     }
                 }
             }
@@ -87,9 +91,9 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.a) {
-                    claw.setPosition(0);
-                } else if (gamepad2.b) {
                     claw.setPosition(1);
+                } else {
+                    claw.setPosition(0.5);
                 }
             }
         }));
@@ -241,7 +245,7 @@ public class TeleOp2020 extends ThreadOpMode {
         if (gamepad1.left_stick_x < -0.85) {
             strafeLeft(motorPower);
         } else if (gamepad1.left_stick_x > 0.85) {
-            strafeRight(motorPower);
+            strafeRight(motorPower);    
         } else {
             frontRight.setPower(motorPower * (this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
             frontLeft.setPower(motorPower * (-this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
