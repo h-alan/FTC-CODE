@@ -117,15 +117,16 @@ public class Autonomous2021 extends LinearOpMode {
         wobbleArm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
 
-        wobbleArm.setPosition(1);
-        wobbleArm.setPosition(wobbleArm.getPosition());
-
         claw.setPosition(1);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
         //put encoder stuff IN HERE; while opModeisActive is for everything
+        while (wobbleArm.getPosition() > 0.35) {
+            wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
+        }
+        sleep(500);
 
         goForward(0.5);
         sleep(1300);
@@ -159,53 +160,70 @@ public class Autonomous2021 extends LinearOpMode {
 
         // moving to the correct square based on the amount of rings
         if (objectsFound.equals("None")) {
+            // go to box
             goForward(0.5);
             sleep(1100);
+            stopMotors();
+            sleep(200);
 
+            // make room for wobble goal
+            strafeLeft(0.5);
+            sleep(400);
+            stopMotors();
+            sleep(200);
+
+            // drop wobble goal
             while (wobbleArm.getPosition() < .9) {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
-
+            sleep(500);
             claw.setPosition(0.5);
             sleep(500);
-            //encoderDrive(DRIVE_SPEED, -37, -37, -37, -37, 5.0);
         } else if (objectsFound.equals("Single")) {
+            // go to box
             goForward(0.5);
             sleep(2100);
             strafeLeft(0.5);
-            sleep(1300);
+            sleep(1600);
 
             stopMotors();
             sleep(200);
 
+            // drop wobble
             while (wobbleArm.getPosition() < .9) {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
-
-            claw.setPosition(0.5);
             sleep(500);
+            claw.setPosition(0.5);
+            sleep(300);
 
+            // go to white line
             goBackward(0.5);
             sleep(650);
-            //encoderDrive(DRIVE_SPEED, -67, -67, -67, -67, 5.0);
-            //encoderDrive(DRIVE_SPEED, 20, -20, -20, 20, 5.0); // strafing left
         } else {
+            // go to box
             goForward(0.5);
             sleep(3100);
-
             stopMotors();
             sleep(200);
 
+            // make room for wobble
+            strafeLeft(0.5);
+            sleep(300);
+            stopMotors();
+            sleep(200);
+
+            // drop wobble
             while (wobbleArm.getPosition() < .9) {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
-
+            sleep(500);
             claw.setPosition(0.5);
             sleep(500);
 
+            // go to white line
             goBackward(0.5);
             sleep(1650);
-            //encoderDrive(DRIVE_SPEED, -95, -95, -95, -95, 5.0);
         }
 
         stopMotors();
@@ -218,7 +236,6 @@ public class Autonomous2021 extends LinearOpMode {
             tfod.shutdown();
         }
     }
-
 
 
     private void initVuforia() {
