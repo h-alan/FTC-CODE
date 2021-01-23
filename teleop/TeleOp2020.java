@@ -36,7 +36,7 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo claw;
 
     double motorPower = 0.75;
-    double launcherPower = 0.75;
+    double launcherPower = 0.625;
     /*
     --------------------------------------
     */
@@ -124,7 +124,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.left_trigger > 0.85) {
-                    launcher.setPower(launcherPower);
+                    launcher.setPower(-launcherPower);
                 } else {
                     launcher.setPower(0);
                 }
@@ -138,7 +138,7 @@ public class TeleOp2020 extends ThreadOpMode {
                 if (gamepad2.right_trigger > 0.85) {
                     launcherPush.setPosition(0.4);
                 } else {
-                    launcherPush.setPosition(0.1);
+                    launcherPush.setPosition(0.7);
                 }
             }
         }));
@@ -202,7 +202,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.right_bumper && increase) {
-                    launcherPower += 0.05;
+                    launcherPower += 0.025;
                     if (launcherPower > 1) {
                         launcherPower = 1;
                     }
@@ -210,7 +210,7 @@ public class TeleOp2020 extends ThreadOpMode {
                 } else if (!gamepad2.right_bumper)
                     increase = true; // releasing the bumper  will allow you to increase again
 
-                launcherPower = Math.round(launcherPower * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+                launcherPower = Math.round(launcherPower * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
             }
         }));
 
@@ -221,7 +221,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.left_bumper && decrease) {
-                    launcherPower -= 0.05;
+                    launcherPower -= 0.025;
                     if (launcherPower < 0) {
                         launcherPower = 0;
                     }
@@ -229,7 +229,7 @@ public class TeleOp2020 extends ThreadOpMode {
                 } else if (!gamepad2.left_bumper)
                     decrease = true; // releasing the bumper  will allow you to decrease again
 
-                launcherPower = Math.round(launcherPower * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+                launcherPower = Math.round(launcherPower * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
             }
         }));
 
@@ -242,29 +242,32 @@ public class TeleOp2020 extends ThreadOpMode {
      */
     @Override
     public void mainLoop() {
-
-        frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-        frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y -this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
-        backRight.setPower(motorPower * -(this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
-        backLeft.setPower(motorPower * -(-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
-
-        telemetry.addData("Status", "Running");
+        if (gamepad1.left_stick_x < -0.85) {
+            strafeRight(motorPower);
+        } else if (gamepad1.left_stick_x > 0.85) {
+            strafeLeft(motorPower);
+        } else {
+            frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+            frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y -this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+            backRight.setPower(motorPower * -(this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
+            backLeft.setPower(motorPower * -(-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
+        }
         telemetry.addData("Motor Power: ", motorPower);
+        telemetry.addData("Launcher Power: ", launcherPower);
         telemetry.update();
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(-tgtPower);
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(tgtPower);
         backRight.setPower(-tgtPower);
         backLeft.setPower(-tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
-        frontLeft.setPower(tgtPower);
-        frontRight.setPower(tgtPower);
-        backLeft.setPower(tgtPower);
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
         backRight.setPower(tgtPower);
-
+        backLeft.setPower(tgtPower);
     }
 }
