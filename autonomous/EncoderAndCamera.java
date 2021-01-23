@@ -92,6 +92,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
     static final double AZoneDistance = 24; // distance from origin to the location of ring detection (inch)
     static final double BZoneDistance = 48; // distance from origin to the location of ring detection (inch)
     static final double CZoneDistance = 72; // distance from origin to the location of ring detection (inch)
+    static final double shootDistance = 24;
     static final double goalRoom = 6;
 
     @Override
@@ -164,7 +165,30 @@ public class EncoderAndCameraTest extends LinearOpMode {
                 }
             }
         }
-
+        int shootDistance = 840;
+        goForward(0.5);
+        sleep(shootDistance);
+        strafeLeft(0.5);
+        sleep(2000);
+        stopMotors();
+        //Starts shooting
+        launcher.setPower(-0.61);
+        sleep(1500);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+        launcher.setPower(0);
+        //goes back to the position
+        strafeRight(0.5);
+        sleep(2000);
         // moving to the correct square based on the amount of rings
         if (objectsFound.equals("None")) {
             // go to box
