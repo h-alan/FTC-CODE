@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -43,62 +44,58 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@Autonomous(name = "EncoderandCameraTest", group = "Linear OpMode")
+@Autonomous(name = "Autonomous2021Encoders", group = "Linear OpMode")
 //@Disabled
-public class CameraDetection extends LinearOpMode {
+public class EncoderAndCameraTest extends LinearOpMode {
 
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Quad";
     private static final String LABEL_SECOND_ELEMENT = "Single";
 
-    /*
-     * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
-     * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
-     * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
-     * web site at https://developer.vuforia.com/license-manager.
-     *
-     * Vuforia license keys are always 380 characters long, and look as if they contain mostly
-     * random data. As an example, here is a example of a fragment of a valid key:
-     *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
-     * Once you've obtained a license key, copy the string from the Vuforia web site
-     * and paste it in to your code on the next line, between the double quotes.
-     */
     private static final String VUFORIA_KEY =
             "AeflKlH/////AAABmQAedZNXCkKmqQ2CkC55GVkZGoxK0YlVMNeDwQgN5B9Jq26R9J8TZ0qlrBQVz2o3vEgIjMfV8rZF2Z7PPxZJnScBap/Jh2cxT0teLCWkuBk/mZzWC0bRjhpwT0JkU3AGpztJHL4oJZDEaf4fUDilG1NdczNT5V8nL/ZraZzRZvGBwYO7q42b32DKKb+05OemiCOCx34h0qq0lkahDKKO7k1UTpznzyK33IPVtvutSgGvdrpNe/Jv5ApIvHcib4bKom7XVqf800+Adi0bDD94NSWFeJq+i/IZnJJqH9iXXdl3Qjptri6irrciVJtmjtyZCnFB0n4ni90VmmDb5We3Dvft6wjdPrVO5UVAotWZJAnr";
 
-    /**
-     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
-     * localization engine.
-     */
     private VuforiaLocalizer vuforia;
 
-    /**
-     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
-     * Detection engine.
-     */
     private TFObjectDetector tfod;
 
-
-    /* Declare OpMode members. */
-    //HardwarePushbot         robot   = new HardwarePushbot();   // Use a Pushbot's hardware
     private ElapsedTime runtime = new ElapsedTime();
-    protected DcMotor frontRight;
-    protected DcMotor frontLeft;
-    protected DcMotor backRight;
-    protected DcMotor backLeft;
+
+    // moving motors
+    private DcMotor frontLeft;
+    private DcMotor frontRight;
+    private DcMotor backLeft;
+    private DcMotor backRight;
+
+    // sweeping motors
+    private DcMotor wheelRack;
+    private DcMotor belt;
+
+    // launching motor
+    private DcMotor launcher;
+
+    // servos
+    private Servo wobbleArm;
+    private Servo launcherPush;  // moves the rings into the launching motor
+    private Servo claw;
+
+    double launcherPower = 0.75;
 
     static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
     static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
     static final double WHEEL_DIAMETER_INCHES = 10 / 2.54;     // For figuring circumference
     static final double COUNTS_PER_INCH = (12 / 9.6)/* (12/10.25) */ * (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double DRIVE_SPEED = .5;
+    static final double DRIVE_SPEED = .1;
     static final double TURN_SPEED = 0.5;
+    static final double ringDistance = 32; // distance from origin to the location of ring detection (inch)
+    static final double AZoneDistance = 24; // distance from origin to the location of ring detection (inch)
+    static final double BZoneDistance = 48; // distance from origin to the location of ring detection (inch)
+    static final double CZoneDistance = 72; // distance from origin to the location of ring detection (inch)
+    static final double goalRoom = 6;
 
     @Override
     public void runOpMode() {
-        // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that
-        // first.
         initVuforia();
         initTfod();
 
@@ -108,58 +105,41 @@ public class CameraDetection extends LinearOpMode {
          **/
         if (tfod != null) {
             tfod.activate();
-
-            // The TensorFlow software will scale the input images from the camera to a lower resolution.
-            // This can result in lower detection accuracy at longer distances (> 55cm or 22").
-            // If your target is at distance greater than 50 cm (20") you can adjust the magnification value
-            // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
-            // should be set to the value of the images used to create the TensorFlow Object Detection model
-            // (typically 1.78 or 16/9).
-
-            // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
-            //tfod.setZoom(2.5, 1.78);
         }
-        /*
-         * Initialize the drive system variables.
-         * The init() method of the hardware class does all the work here
-         */
-
-
-        // Send telemetry message to signify robot waiting;
-        telemetry.addData("Status", "Resetting Encoders");    //
-        telemetry.update();
 
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
 
-        //was: robot.right or something. if you ever need to change from there again
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER); //!!!!!!!!!!!!!
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        launcher = hardwareMap.get(DcMotor.class, "launcher");
+        launcherPush = hardwareMap.get(Servo.class, "launcherPush");
 
-        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
+        belt = hardwareMap.get(DcMotor.class, "belt");
 
-        // Send telemetry message to indicate successful Encoder reset
-        telemetry.addData("Path0", "Starting at %7d :%7d",
-                frontLeft.getCurrentPosition(),
-                frontRight.getCurrentPosition());
-        telemetry.update();
+        //arm is god servo
+        wobbleArm = hardwareMap.get(Servo.class, "arm");
+        claw = hardwareMap.get(Servo.class, "claw");
+
+        claw.setPosition(1);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
         //put encoder stuff IN HERE; while opModeisActive is for everything
-        //strafe right 8 inches
-
-        encoderDrive(DRIVE_SPEED, 40, 40, 40, 40, 5.0);
-
+        while (wobbleArm.getPosition() > 0.35) {
+            wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
+        }
         sleep(500);
+
+        // goForward(0.5);
+        // sleep(1300);
+        //encoderDrive(0.6,ringDistance,ringDistance,30);
+
+        // stopMotors();
+        // sleep(200);
+
 
         String objectsFound = "None";
 
@@ -185,15 +165,82 @@ public class CameraDetection extends LinearOpMode {
             }
         }
 
+        // moving to the correct square based on the amount of rings
         if (objectsFound.equals("None")) {
-            encoderDrive(DRIVE_SPEED, 37, 37, 37, 37, 5.0);
+            // go to box
+            // go to box
+            // goForward(0.5);
+            // sleep(1100);
+            // stopMotors();
+            // sleep(200);
+            //encoderDrive(0.6,AZoneDistance,AZoneDistance,30);
+            goForwardEncoder(AZoneDistance);
+
+            // make room for wobble goal
+            strafeLeftEncoder(goalRoom);
+            stopMotors();
+            sleep(200);
+
+            // drop wobble goal
+            while (wobbleArm.getPosition() < .9) {
+                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+            }
+            sleep(500);
+            claw.setPosition(0.5);
+            sleep(500);
+            strafeLeftEncoder(goalRoom);
         } else if (objectsFound.equals("Single")) {
-            encoderDrive(DRIVE_SPEED, 67, 67, 67, 67, 5.0);
-            encoderDrive(DRIVE_SPEED, -20, 20, 20, -20, 5.0); // strafing left
+            // go to box
+            //goForward(0.5);
+            //sleep(2100);
+            //encoderDrive(0.6,BZoneDistance,BZoneDistance,30);
+            goForwardEncoder(BZoneDistance);
+
+            strafeLeft(0.5);
+            sleep(1600);
+
+            stopMotors();
+            sleep(200);
+
+            // drop wobble
+            while (wobbleArm.getPosition() < .9) {
+                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+            }
+            sleep(500);
+            claw.setPosition(0.5);
+            sleep(300);
+
+            // go to white line
+            //goBackward(0.5);
+            //sleep(650);
         } else {
-            encoderDrive(DRIVE_SPEED, 95, 95, 95, 95, 5.0);
+            // go to box
+            //goForward(0.5);
+            //sleep(3100);
+            // stopMotors();
+            //sleep(200);
+            //encoderDrive(0.6,CZoneDistance,CZoneDistance,30);
+            goForwardEncoder(CZoneDistance);
+
+            // make room for wobble
+            strafeLeftEncoder(goalRoom);
+            stopMotors();
+            sleep(200);
+
+            // drop wobble
+            while (wobbleArm.getPosition() < .9) {
+                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+            }
+            sleep(500);
+            claw.setPosition(0.5);
+            sleep(500);
+
+            // go to white line
+            //goBackward(0.5);
+            //sleep(1650);
         }
 
+        stopMotors();
         sleep(500);     // pause for servos to move
 
         telemetry.addData("Path", "Complete");
@@ -203,6 +250,7 @@ public class CameraDetection extends LinearOpMode {
             tfod.shutdown();
         }
     }
+
 
     private void initVuforia() {
         /*
@@ -239,40 +287,70 @@ public class CameraDetection extends LinearOpMode {
      *  2) Move runs out of time
      *  3) Driver stops the opmode running.
      */
-    public void encoderDrive(double speed,
-                             double frontLeftInches, double frontRightInches, double backLeftInches, double backRightInches,
-                             double timeoutS) {
+
+    protected void encoderDrive(double speed,
+                                double FrontLeftInches, double FrontRightInches, double BackLeftInches, double BackRightInches,
+                                double timeoutS) {
         int newFrontLeftTarget;
         int newFrontRightTarget;
         int newBackLeftTarget;
         int newBackRightTarget;
+
+        //double adjustRT = 1.01; // Right distance adjustment 1% more than left
+        // Speed ramp on start of move to avoid wheel slip
+        final double MINSPEED = 0.30; // Start at this power
+        final double SPEEDINCR = 0.015; // And increment by this much each cycle
+        double curSpeed; // Keep track of speed as we ramp
 
         // Ensure that the opmode is still active
         if (opModeIsActive()) {
 
             // Determine new target position, and pass to motor controller
             //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
-            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-frontLeftInches * COUNTS_PER_INCH);
-            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (frontRightInches * COUNTS_PER_INCH);
-            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-backLeftInches * COUNTS_PER_INCH);
-            newBackRightTarget = backRight.getCurrentPosition() + (int) (backRightInches * COUNTS_PER_INCH);
+            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-FrontLeftInches * COUNTS_PER_INCH);
+            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (FrontRightInches * COUNTS_PER_INCH);
+            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-BackLeftInches * COUNTS_PER_INCH);
+            newBackRightTarget = backRight.getCurrentPosition() + (int) (BackRightInches * COUNTS_PER_INCH);
             frontLeft.setTargetPosition(newFrontLeftTarget);
             frontRight.setTargetPosition(newFrontRightTarget);
             backLeft.setTargetPosition(newBackLeftTarget);
             backRight.setTargetPosition(newBackRightTarget);
 
+            while (frontLeft.getTargetPosition() != newFrontLeftTarget) {
+                frontLeft.setTargetPosition(newFrontLeftTarget);
+                sleep(1);
+            }
+            while (frontRight.getTargetPosition() != newFrontRightTarget) {
+                frontRight.setTargetPosition(newFrontRightTarget);
+                sleep(1);
+            }
+            while (backLeft.getTargetPosition() != newBackLeftTarget) {
+                backLeft.setTargetPosition(newBackLeftTarget);
+                sleep(1);
+            }
+            while (backRight.getTargetPosition() != newBackRightTarget) {
+                backRight.setTargetPosition(newBackRightTarget);
+                sleep(1);
+            }
+
+
             // Turn On RUN_TO_POSITION
             frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             // reset the timeout time and start motion.
             runtime.reset();
-            frontLeft.setPower(speed);
-            frontRight.setPower(speed);
-            backLeft.setPower(speed);
-            backRight.setPower(speed);
+
+            speed = Math.abs(speed); // Make sure its positive
+            curSpeed = Math.min(MINSPEED, speed);
+
+
+            frontLeft.setPower(curSpeed);
+            backLeft.setPower(curSpeed);
+            frontRight.setPower(curSpeed);
+            backRight.setPower(curSpeed);
 
             // keep looping while we are still active, and there is time left, and both motors are running.
             // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
@@ -282,7 +360,20 @@ public class CameraDetection extends LinearOpMode {
             // onto the next step, use (isBusy() || isBusy()) in the loop test.
             while (opModeIsActive() &&
                     (runtime.seconds() < timeoutS) &&
-                    (frontLeft.isBusy() && frontRight.isBusy())) { //might need to change this to all being busy..
+                    (frontLeft.isBusy() && frontRight.isBusy() && backLeft.isBusy()&& backRight.isBusy())) { //might need to change this to all being busy..
+
+                // Ramp up motor powers as needed
+                if (curSpeed < speed) {
+                    curSpeed += SPEEDINCR;
+                }
+                else curSpeed = speed;
+
+                // And rewrite the motor speeds
+                frontLeft.setPower(curSpeed);
+                backLeft.setPower(curSpeed);
+                frontRight.setPower(curSpeed);
+                backRight.setPower(curSpeed);
+
 
                 // Display it for the driver.
                 telemetry.addData("Path1", "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
@@ -304,7 +395,79 @@ public class CameraDetection extends LinearOpMode {
             backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-            //  sleep(250);   // optional pause after each move
+            sleep(100);   // optional pause after each move
         }
     }
+
+    protected void goBackward(double tgtPower) {
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower);
+        backLeft.setPower(-tgtPower);
+    }
+
+    protected void goForward(double tgtPower) {
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower);
+        backLeft.setPower(tgtPower);
+    }
+
+    protected void stopMotors() {
+        frontRight.setPower(0);
+        frontLeft.setPower(0);
+        backRight.setPower(0);
+        backLeft.setPower(0);
+    }
+
+    private void strafeRight(double tgtPower) {
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower);
+        backLeft.setPower(-tgtPower);
+    }
+
+    private void strafeLeft(double tgtPower) {
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower);
+        backLeft.setPower(tgtPower);
+    }
+
+
+    protected void goBackwardEncoder(double goBakInches) {
+        //frontRight.setPower(tgtPower);
+        //frontLeft.setPower(-tgtPower);
+        //backRight.setPower(tgtPower);
+        //backLeft.setPower(-tgtPower);
+        encoderDrive(0.6, goBakInches, -goBakInches, goBakInches, -goBakInches, 30);
+
+    }
+
+    protected void goForwardEncoder(double goForInches) {
+        //frontRight.setPower(-tgtPower);
+        //frontLeft.setPower(tgtPower);
+        //backRight.setPower(-tgtPower);
+        //backLeft.setPower(tgtPower);
+        encoderDrive(0.6, -goForInches, goForInches, -goForInches, goForInches, 30);
+
+    }
+
+    private void strafeRightEncoder(double strafeRightInch) {
+        //frontRight.setPower(tgtPower);
+        //frontLeft.setPower(tgtPower);
+        //backRight.setPower(-tgtPower);
+        //backLeft.setPower(-tgtPower);
+        encoderDrive(0.6, -strafeRightInch, -strafeRightInch, strafeRightInch, strafeRightInch, 30);
+
+    }
+
+    private void strafeLeftEncoder(double strafeLeftInch) {
+        //frontRight.setPower(-tgtPower);
+        //frontLeft.setPower(-tgtPower);
+        //backRight.setPower(tgtPower);
+        //backLeft.setPower(tgtPower);
+        encoderDrive(0.6, strafeLeftInch, strafeLeftInch, -strafeLeftInch, -strafeLeftInch, 30);
+    }
+
 }
