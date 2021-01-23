@@ -242,32 +242,29 @@ public class TeleOp2020 extends ThreadOpMode {
      */
     @Override
     public void mainLoop() {
-        if (gamepad1.left_stick_x < -0.85) {
-            strafeLeft(motorPower);
-        } else if (gamepad1.left_stick_x > 0.85) {
-            strafeRight(motorPower);    
-        } else {
-            frontRight.setPower(motorPower * (this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
-            frontLeft.setPower(motorPower * (-this.gamepad1.left_stick_y /* - this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
-            backRight.setPower(motorPower * (this.gamepad1.left_stick_y /* +  this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
-            backLeft.setPower(motorPower * (-this.gamepad1.left_stick_y /* + this.gamepad1.left_stick_x */ - this.gamepad1.right_stick_x));
-        }
+
+        frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+        frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y -this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+        backRight.setPower(motorPower * -(this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
+        backLeft.setPower(motorPower * -(-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
+
+        telemetry.addData("Status", "Running");
         telemetry.addData("Motor Power: ", motorPower);
-        telemetry.addData("Launcher Power: ", launcherPower);
         telemetry.update();
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(tgtPower);
-        frontLeft.setPower(tgtPower);
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
         backRight.setPower(-tgtPower);
         backLeft.setPower(-tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower);
+        frontLeft.setPower(tgtPower);
+        frontRight.setPower(tgtPower);
         backLeft.setPower(tgtPower);
+        backRight.setPower(tgtPower);
+
     }
 }
