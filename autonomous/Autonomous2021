@@ -134,6 +134,7 @@ public class Autonomous2021 extends LinearOpMode {
         stopMotors();
         sleep(200);
 
+        //ring detection time
         String objectsFound = "None";
 
         for (int j = 0; j < 5000000; j++) {
@@ -157,18 +158,70 @@ public class Autonomous2021 extends LinearOpMode {
                 }
             }
         }
+        int shootDistance = 840;
+        goForward(0.5);
+        sleep(shootDistance);
+        strafeLeft(0.5);
+        sleep(2000);
+        stopMotors();
+        //Starts shooting
+        launcher.setPower(-0.61);
+        sleep(1500);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+        launcher.setPower(0);
+        //goes back to the position
+        strafeRight(0.5);
+        sleep(2000);
+        /* unused power shot goal code
+        strafeLeft(0.5);
+        sleep(1800);
+        stopMotors();
+        launcher.setPower(-0.6);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
 
+        strafeLeft(0.5);
+        sleep(700);
+        stopMotors();
+        launcher.setPower(-0.6);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+
+        strafeLeft(0.5);
+        sleep(800);
+        stopMotors();
+        launcher.setPower(-0.6);
+        sleep(1000);
+        launcherPush.setPosition(0.3);
+        sleep(1000);
+        launcherPush.setPosition(0.7);
+*/
         // moving to the correct square based on the amount of rings
+
         if (objectsFound.equals("None")) {
             // go to box
             goForward(0.5);
-            sleep(1100);
+            sleep(100);
             stopMotors();
             sleep(200);
 
             // make room for wobble goal
             strafeLeft(0.5);
-            sleep(400);
+            sleep(450);
             stopMotors();
             sleep(200);
 
@@ -179,10 +232,13 @@ public class Autonomous2021 extends LinearOpMode {
             sleep(500);
             claw.setPosition(0.5);
             sleep(500);
+            // go to white line
+            strafeLeft(0.5);
+            sleep(250);
         } else if (objectsFound.equals("Single")) {
             // go to box
             goForward(0.5);
-            sleep(2100);
+            sleep(2100 - shootDistance);
             strafeLeft(0.5);
             sleep(1600);
 
@@ -198,12 +254,14 @@ public class Autonomous2021 extends LinearOpMode {
             sleep(300);
 
             // go to white line
+            strafeLeft(0.5);
+            sleep(250);
             goBackward(0.5);
             sleep(650);
         } else {
             // go to box
             goForward(0.5);
-            sleep(3100);
+            sleep(3000 - shootDistance);
             stopMotors();
             sleep(200);
 
@@ -222,12 +280,15 @@ public class Autonomous2021 extends LinearOpMode {
             sleep(500);
 
             // go to white line
+            strafeLeft(0.5);
+            sleep(250);
             goBackward(0.5);
             sleep(1650);
         }
 
         stopMotors();
         sleep(500);     // pause for servos to move
+
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -343,17 +404,17 @@ public class Autonomous2021 extends LinearOpMode {
     }
 
     protected void goBackward(double tgtPower) {
-        frontRight.setPower(tgtPower);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower);
-        backLeft.setPower(-tgtPower);
+        frontRight.setPower(-tgtPower*1.05);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower*1.05);
+        backLeft.setPower(tgtPower);
     }
 
     protected void goForward(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower);
-        backLeft.setPower(tgtPower);
+        frontLeft.setPower(-tgtPower);
+        frontRight.setPower(tgtPower*1.05);
+        backLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower*1.05);
     }
 
     protected void stopMotors() {
@@ -364,16 +425,16 @@ public class Autonomous2021 extends LinearOpMode {
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(tgtPower);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower);
-        backLeft.setPower(-tgtPower);
+        frontRight.setPower(-tgtPower*1.05);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower*1.05);
+        backLeft.setPower(tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
-        frontRight.setPower(-tgtPower);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower);
-        backLeft.setPower(tgtPower);
+        frontRight.setPower(tgtPower*1.05);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower*1.05);
+        backLeft.setPower(-tgtPower);
     }
 }
