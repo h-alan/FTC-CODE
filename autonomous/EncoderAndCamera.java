@@ -93,6 +93,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
     static final double BZoneDistance = 48; // distance from origin to the location of ring detection (inch)
     static final double CZoneDistance = 72; // distance from origin to the location of ring detection (inch)
     static final double shootDistance = 24;
+    static final double shootLeft = 24;
     static final double goalRoom = 6;
 
     @Override
@@ -129,17 +130,14 @@ public class EncoderAndCameraTest extends LinearOpMode {
         waitForStart();
 
         //put encoder stuff IN HERE; while opModeisActive is for everything
-        while (wobbleArm.getPosition() > 0.35) {
-            wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
-        }
         sleep(500);
 
         // goForward(0.5);
         // sleep(1300);
         //encoderDrive(0.6,ringDistance,ringDistance,30);
+        strafeRightEncoder(ringDistance);
 
-        // stopMotors();
-        // sleep(200);
+/*
 
 
         String objectsFound = "None";
@@ -165,11 +163,8 @@ public class EncoderAndCameraTest extends LinearOpMode {
                 }
             }
         }
-        int shootDistance = 840;
-        goForward(0.5);
-        sleep(shootDistance);
-        strafeLeft(0.5);
-        sleep(2000);
+        goForwardEncoder(shootDistance);
+        strafeLeftEncoder(shootLeft);
         stopMotors();
         //Starts shooting
         launcher.setPower(-0.61);
@@ -187,8 +182,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
         launcherPush.setPosition(0.7);
         launcher.setPower(0);
         //goes back to the position
-        strafeRight(0.5);
-        sleep(2000);
+        strafeRightEncoder(shootLeft);
         // moving to the correct square based on the amount of rings
         if (objectsFound.equals("None")) {
             // go to box
@@ -269,6 +263,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
+*/
 
         if (tfod != null) {
             tfod.shutdown();
@@ -387,11 +382,11 @@ public class EncoderAndCameraTest extends LinearOpMode {
                     (frontLeft.isBusy() && frontRight.isBusy() && backLeft.isBusy()&& backRight.isBusy())) { //might need to change this to all being busy..
 
                 // Ramp up motor powers as needed
-                if (curSpeed < speed) {
+  /*              if (curSpeed < speed) {
                     curSpeed += SPEEDINCR;
                 }
                 else curSpeed = speed;
-
+*/
                 // And rewrite the motor speeds
                 frontLeft.setPower(curSpeed);
                 backLeft.setPower(curSpeed);
@@ -464,7 +459,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
         //frontLeft.setPower(-tgtPower);
         //backRight.setPower(tgtPower);
         //backLeft.setPower(-tgtPower);
-        encoderDrive(0.6, goBakInches, -goBakInches, goBakInches, -goBakInches, 30);
+        encoderDrive(0.6, -goBakInches, -goBakInches, -goBakInches, -goBakInches, 30);
 
     }
 
@@ -473,7 +468,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
         //frontLeft.setPower(tgtPower);
         //backRight.setPower(-tgtPower);
         //backLeft.setPower(tgtPower);
-        encoderDrive(0.6, -goForInches, goForInches, -goForInches, goForInches, 30);
+        encoderDrive(0.6, goForInches, goForInches, goForInches, goForInches, 30);
 
     }
 
@@ -482,7 +477,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
         //frontLeft.setPower(tgtPower);
         //backRight.setPower(-tgtPower);
         //backLeft.setPower(-tgtPower);
-        encoderDrive(0.6, -strafeRightInch, -strafeRightInch, strafeRightInch, strafeRightInch, 30);
+        encoderDrive(0.6, strafeRightInch, -strafeRightInch, -strafeRightInch, strafeRightInch, 30);
 
     }
 
@@ -491,7 +486,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
         //frontLeft.setPower(-tgtPower);
         //backRight.setPower(tgtPower);
         //backLeft.setPower(tgtPower);
-        encoderDrive(0.6, strafeLeftInch, strafeLeftInch, -strafeLeftInch, -strafeLeftInch, 30);
+        encoderDrive(0.6, -strafeLeftInch, strafeLeftInch, strafeLeftInch, -strafeLeftInch, 30);
     }
 
 }
