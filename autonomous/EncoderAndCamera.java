@@ -80,6 +80,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
     private Servo claw;
 
     double launcherPower = 0.75;
+    double motorPower = 0.8;  // set the vehicle DC modtor power.
 
     static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
     static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
@@ -88,13 +89,21 @@ public class EncoderAndCameraTest extends LinearOpMode {
             (WHEEL_DIAMETER_INCHES * 3.1415);
     static final double DRIVE_SPEED = .1;
     static final double TURN_SPEED = 0.5;
-    static final double ringDistance = 32; // distance from origin to the location of ring detection (inch)
-    static final double AZoneDistance = 24; // distance from origin to the location of ring detection (inch)
-    static final double BZoneDistance = 48; // distance from origin to the location of ring detection (inch)
-    static final double CZoneDistance = 72; // distance from origin to the location of ring detection (inch)
-    static final double shootDistance = 24;
-    static final double shootLeft = 24;
+    static final double ringDistance = 39; // distance from origin to the location of ring detection (inch)
+
+    static final double AZoneDistance = 12; // distance from origin to the location of ring detection (inch)
+    static final double shootToAZoneDrop = 12; // distance from origin to the location of ring detection (inch)
+    static final double BZoneDistance = 36; // distance from origin to the location of ring detection (inch)
+    static final double shootToBZoneDrop = 1; // distance from origin to the location of ring detection (inch)
+    static final double CZoneDistance = 60; // distance from origin to the location of ring detection (inch)
+    static final double shootToCZoneDrop = 12; // distance from origin to the location of ring detection (inch)
+    double goForBakDistanceCorrection = 1.11;  //Calibration showed setting to go forward/backward 32 inches command, but actually achieved 29 inches when motor power was set as 0.6.
+    double goStrafeDistanceCorrection = 1.33;  //Calibration showed setting to strafe left/right 32 inches command, but actually achieved 24 inches when motor power was set as 0.6.
+
+    static final double shootDistance = 24;  //The distance from the ring detection to shooting position X direction
+    static final double shootLeft = 38;  //The distance from the ring detection to shooting position Y direction to strafe left
     static final double goalRoom = 6;
+    static final double moreGoalRoom = 6;
 
     @Override
     public void runOpMode() {
@@ -133,12 +142,13 @@ public class EncoderAndCameraTest extends LinearOpMode {
         sleep(500);
 
         // goForward(0.5);
-        // sleep(1300);
-        //encoderDrive(0.6,ringDistance,ringDistance,30);
-        strafeRightEncoder(ringDistance);
+        //goForwardEncoder(ringDistance*goForBakDistanceCorrection, motorPower);
+        strafeLeftEncoder(ringDistance*goStrafeDistanceCorrection, motorPower);
 
-/*
+        sleep(100);
 
+
+        //*
 
         String objectsFound = "None";
 
@@ -163,9 +173,10 @@ public class EncoderAndCameraTest extends LinearOpMode {
                 }
             }
         }
-        goForwardEncoder(shootDistance);
-        strafeLeftEncoder(shootLeft);
-        stopMotors();
+        goForwardEncoder(shootDistance*goForBakDistanceCorrection, motorPower);
+        strafeLeftEncoder(shootLeft*goStrafeDistanceCorrection, motorPower);
+        //stopMotors();
+
         //Starts shooting
         launcher.setPower(-0.61);
         sleep(1500);
@@ -182,22 +193,15 @@ public class EncoderAndCameraTest extends LinearOpMode {
         launcherPush.setPosition(0.7);
         launcher.setPower(0);
         //goes back to the position
-        strafeRightEncoder(shootLeft);
+        strafeRightEncoder(shootLeft*goStrafeDistanceCorrection, motorPower);
         // moving to the correct square based on the amount of rings
         if (objectsFound.equals("None")) {
             // go to box
-            // go to box
-            // goForward(0.5);
-            // sleep(1100);
-            // stopMotors();
-            // sleep(200);
-            //encoderDrive(0.6,AZoneDistance,AZoneDistance,30);
-            goForwardEncoder(AZoneDistance);
+            strafeRightEncoder(shootToAZoneDrop*goStrafeDistanceCorrection, motorPower);
+            goForwardEncoder(AZoneDistance*goForBakDistanceCorrection, motorPower);
 
             // make room for wobble goal
-            strafeLeftEncoder(goalRoom);
-            stopMotors();
-            sleep(200);
+            strafeLeftEncoder(shootToAZoneDrop*goStrafeDistanceCorrection, motorPower);
 
             // drop wobble goal
             while (wobbleArm.getPosition() < .9) {
@@ -206,19 +210,18 @@ public class EncoderAndCameraTest extends LinearOpMode {
             sleep(500);
             claw.setPosition(0.5);
             sleep(500);
-            strafeLeftEncoder(goalRoom);
+            //make room for wobble goal again
+            strafeLeftEncoder(moreGoalRoom*goForBakDistanceCorrection, motorPower);
+            // go to white line
+            goBackwardEncoder(AZoneDistance*goForBakDistanceCorrection, motorPower);
+
         } else if (objectsFound.equals("Single")) {
             // go to box
-            //goForward(0.5);
-            //sleep(2100);
-            //encoderDrive(0.6,BZoneDistance,BZoneDistance,30);
-            goForwardEncoder(BZoneDistance);
+            strafeRightEncoder(shootToBZoneDrop*goStrafeDistanceCorrection, motorPower);
+            goForwardEncoder(BZoneDistance*goForBakDistanceCorrection, motorPower);
 
-            strafeLeft(0.5);
-            sleep(1600);
-
-            stopMotors();
-            sleep(200);
+            // make room for wobble
+            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
 
             // drop wobble
             while (wobbleArm.getPosition() < .9) {
@@ -228,22 +231,19 @@ public class EncoderAndCameraTest extends LinearOpMode {
             claw.setPosition(0.5);
             sleep(300);
 
+            //make room for wobble goal again
+            strafeLeftEncoder(moreGoalRoom*goStrafeDistanceCorrection, motorPower);
             // go to white line
-            //goBackward(0.5);
+            goBackwardEncoder(BZoneDistance*goForBakDistanceCorrection, motorPower);
+
             //sleep(650);
         } else {
             // go to box
-            //goForward(0.5);
-            //sleep(3100);
-            // stopMotors();
-            //sleep(200);
-            //encoderDrive(0.6,CZoneDistance,CZoneDistance,30);
-            goForwardEncoder(CZoneDistance);
+            strafeRightEncoder(shootToCZoneDrop*goForBakDistanceCorrection, motorPower);
+            goForwardEncoder(CZoneDistance*goForBakDistanceCorrection, motorPower);
 
             // make room for wobble
-            strafeLeftEncoder(goalRoom);
-            stopMotors();
-            sleep(200);
+            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
 
             // drop wobble
             while (wobbleArm.getPosition() < .9) {
@@ -253,9 +253,10 @@ public class EncoderAndCameraTest extends LinearOpMode {
             claw.setPosition(0.5);
             sleep(500);
 
+            //make room for wobble goal again
+            strafeLeftEncoder(moreGoalRoom*goStrafeDistanceCorrection, motorPower);
             // go to white line
-            //goBackward(0.5);
-            //sleep(1650);
+            goBackwardEncoder(CZoneDistance*goForBakDistanceCorrection, motorPower);
         }
 
         stopMotors();
@@ -263,7 +264,7 @@ public class EncoderAndCameraTest extends LinearOpMode {
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
-*/
+        //*/
 
         if (tfod != null) {
             tfod.shutdown();
@@ -454,39 +455,39 @@ public class EncoderAndCameraTest extends LinearOpMode {
     }
 
 
-    protected void goBackwardEncoder(double goBakInches) {
+    protected void goBackwardEncoder(double goBakInches, double mymotorPower) {
         //frontRight.setPower(tgtPower);
         //frontLeft.setPower(-tgtPower);
         //backRight.setPower(tgtPower);
         //backLeft.setPower(-tgtPower);
-        encoderDrive(0.6, -goBakInches, -goBakInches, -goBakInches, -goBakInches, 30);
+        encoderDrive(mymotorPower, -goBakInches, -goBakInches, -goBakInches, -goBakInches, 30);
 
     }
 
-    protected void goForwardEncoder(double goForInches) {
+    protected void goForwardEncoder(double goForInches, double mymotorPower) {
         //frontRight.setPower(-tgtPower);
         //frontLeft.setPower(tgtPower);
         //backRight.setPower(-tgtPower);
         //backLeft.setPower(tgtPower);
-        encoderDrive(0.6, goForInches, goForInches, goForInches, goForInches, 30);
+        encoderDrive(mymotorPower, goForInches, goForInches, goForInches, goForInches, 30);
 
     }
 
-    private void strafeRightEncoder(double strafeRightInch) {
+    private void strafeRightEncoder(double strafeRightInch, double mymotorPower) {
         //frontRight.setPower(tgtPower);
         //frontLeft.setPower(tgtPower);
         //backRight.setPower(-tgtPower);
         //backLeft.setPower(-tgtPower);
-        encoderDrive(0.6, strafeRightInch, -strafeRightInch, -strafeRightInch, strafeRightInch, 30);
+        encoderDrive(mymotorPower, strafeRightInch, -strafeRightInch, -strafeRightInch, strafeRightInch, 30);
 
     }
 
-    private void strafeLeftEncoder(double strafeLeftInch) {
+    private void strafeLeftEncoder(double strafeLeftInch, double mymotorPower) {
         //frontRight.setPower(-tgtPower);
         //frontLeft.setPower(-tgtPower);
         //backRight.setPower(tgtPower);
         //backLeft.setPower(tgtPower);
-        encoderDrive(0.6, -strafeLeftInch, strafeLeftInch, strafeLeftInch, -strafeLeftInch, 30);
+        encoderDrive(mymotorPower, -strafeLeftInch, strafeLeftInch, strafeLeftInch, -strafeLeftInch, 30);
     }
 
 }
