@@ -1,65 +1,21 @@
-package org.firstinspires.ftc.teamcode.autonomous;
+package org.firstinspires.ftc.teamcode.teleop;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.ClassFactory;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
-import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
-import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.thread.TaskThread;
+import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
 
-import java.util.List;
+//Extend ThreadOpMode rather than OpMode
+//Copied and Pasted TeleOp2019
+@TeleOp(name = "Real TeleOp 2020", group = "Threaded Opmode")
+public class TeleOp2020 extends ThreadOpMode {
 
-import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
-
-/**
- * This file illustrates the concept of driving a path based on encoder counts.
- * It uses the common Pushbot hardware class to define the drive on the robot.
- * The code is structured as a LinearOpMode
- * <p>
- * The code REQUIRES that you DO have encoders on the wheels,
- * otherwise you would use: PushbotAutoDriveByTime;
- * <p>
- * This code ALSO requires that the drive Motors have been configured such that a positive
- * power command moves them forwards, and causes the encoders to count UP.
- * <p>
- * The desired path in this example is:
- * - Drive forward for 48 inches
- * - Spin right for 12 Inches
- * - Drive Backwards for 24 inches
- * - Stop and close the claw.
- * <p>
- * The code is written using a method called: encoderDrive(speed, leftInches, rightInches, timeoutS)
- * that performs the actual movement.
- * This methods assumes that each movement is relative to the last stopping place.
- * There are other ways to perform encoder based moves, but this method is probably the simplest.
- * This code uses the RUN_TO_POSITION mode to enable the Motor controllers to generate the run profile
- * <p>
- * Use Android Studios to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
- */
-
-@Autonomous(name = "Autonomous2021Sleep", group = "Linear OpMode")
-//@Disabled
-public class Autonomous2021 extends LinearOpMode {
-
-    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
-    private static final String LABEL_FIRST_ELEMENT = "Quad";
-    private static final String LABEL_SECOND_ELEMENT = "Single";
-
-    private static final String VUFORIA_KEY =
-            "AeflKlH/////AAABmQAedZNXCkKmqQ2CkC55GVkZGoxK0YlVMNeDwQgN5B9Jq26R9J8TZ0qlrBQVz2o3vEgIjMfV8rZF2Z7PPxZJnScBap/Jh2cxT0teLCWkuBk/mZzWC0bRjhpwT0JkU3AGpztJHL4oJZDEaf4fUDilG1NdczNT5V8nL/ZraZzRZvGBwYO7q42b32DKKb+05OemiCOCx34h0qq0lkahDKKO7k1UTpznzyK33IPVtvutSgGvdrpNe/Jv5ApIvHcib4bKom7XVqf800+Adi0bDD94NSWFeJq+i/IZnJJqH9iXXdl3Qjptri6irrciVJtmjtyZCnFB0n4ni90VmmDb5We3Dvft6wjdPrVO5UVAotWZJAnr";
-
-    private VuforiaLocalizer vuforia;
-
-    private TFObjectDetector tfod;
-
-    private ElapsedTime runtime = new ElapsedTime();
+    /*
+    --------------------------------------
+     */
 
     // moving motors
     private DcMotor frontLeft;
@@ -79,362 +35,240 @@ public class Autonomous2021 extends LinearOpMode {
     private Servo launcherPush;  // moves the rings into the launching motor
     private Servo claw;
 
-    double launcherPower = 0.75;
-
-    static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
-    static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
-    static final double WHEEL_DIAMETER_INCHES = 10 / 2.54;     // For figuring circumference
-    static final double COUNTS_PER_INCH = (12 / 9.6)/* (12/10.25) */ * (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
-            (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double DRIVE_SPEED = .1;
-    static final double TURN_SPEED = 0.5;
+    double motorPower = 0.75;
+    double launcherPower = 0.625;
+    /*
+    --------------------------------------
+    */
 
     @Override
-    public void runOpMode() {
-        initVuforia();
-        initTfod();
+    public void mainInit() {
+        /*
+        -----------------Hardware setup--------------
+        */
 
-        /**
-         * Activate TensorFlow Object Detection before we wait for the start command.
-         * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
-         **/
-        if (tfod != null) {
-            tfod.activate();
-        }
-
+        // Player 1
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
 
+        // Player 2
         launcher = hardwareMap.get(DcMotor.class, "launcher");
         launcherPush = hardwareMap.get(Servo.class, "launcherPush");
 
         wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
         belt = hardwareMap.get(DcMotor.class, "belt");
-
         //arm is god servo
         wobbleArm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
 
-        claw.setPosition(1);
+        wobbleArm.setPosition(1);
+        wobbleArm.setPosition(wobbleArm.getPosition());
+        /*
+        ----------------------------------------------
+        */
 
-        // Wait for the game to start (driver presses PLAY)
-        waitForStart();
+        // moves arm. GOD SERVO
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
 
-        //put encoder stuff IN HERE; while opModeisActive is for everything
-        while (wobbleArm.getPosition() > 0.35) {
-            wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
-        }
-        sleep(500);
-
-        goForward(0.5);
-        sleep(1300);
-
-        stopMotors();
-        sleep(200);
-
-        //ring detection time
-        String objectsFound = "None";
-
-        for (int j = 0; j < 5000000; j++) {
-            if (tfod != null) { //tfod !=null is just for the camera thing
-                // getUpdatedRecognitions() will return null if no new information is available since
-                // the last time that call was made.
-                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                if (updatedRecognitions != null) {
-                    telemetry.addData("# Object Detected", updatedRecognitions.size());
-                    // step through the list of recognitions and display boundary info.
-                    int i = 0;
-                    for (Recognition recognition : updatedRecognitions) {
-                        telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-                        telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                                recognition.getLeft(), recognition.getTop());
-                        telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                                recognition.getRight(), recognition.getBottom());
-                        objectsFound = recognition.getLabel();
+                if (gamepad2.x) {
+                    while (wobbleArm.getPosition() < .9) {
+                        wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
                     }
-                    telemetry.update();
+
+                } else {
+                    while (wobbleArm.getPosition() > 0.35) {
+                        wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
+                    }
                 }
             }
-        }
-        int shootDistance = 840;
-        goForward(0.5);
-        sleep(shootDistance);
-        strafeLeft(0.5);
-        sleep(2000);
-        stopMotors();
-        //Starts shooting
-        launcher.setPower(-0.65);
-        sleep(2000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-        launcher.setPower(0);
-        //goes back to the position
-        strafeRight(0.5);
-        sleep(2000);
-        /* unused power shot goal code
-        strafeLeft(0.5);
-        sleep(1800);
-        stopMotors();
-        launcher.setPower(-0.6);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
+        }));
 
-        strafeLeft(0.5);
-        sleep(700);
-        stopMotors();
-        launcher.setPower(-0.6);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-
-        strafeLeft(0.5);
-        sleep(800);
-        stopMotors();
-        launcher.setPower(-0.6);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-*/
-        // moving to the correct square based on the amount of rings
-
-        if (objectsFound.equals("None")) {
-            // go to box
-            goForward(0.5);
-            sleep(100);
-            stopMotors();
-            sleep(200);
-
-            // make room for wobble goal
-            strafeLeft(0.5);
-            sleep(450);
-            stopMotors();
-            sleep(200);
-
-            // drop wobble goal
-            while (wobbleArm.getPosition() < .9) {
-                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+        // open and close claw
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad2.a) {
+                    claw.setPosition(1);
+                } else {
+                    claw.setPosition(0.5);
+                }
             }
-            sleep(500);
-            claw.setPosition(0.5);
-            sleep(500);
-            // go to white line
-            strafeLeft(0.5);
-            sleep(250);
-        } else if (objectsFound.equals("Single")) {
-            // go to box
-            goForward(0.5);
-            sleep(2100 - shootDistance);
-            strafeLeft(0.5);
-            sleep(1600);
+        }));
 
-            stopMotors();
-            sleep(200);
-
-            // drop wobble
-            while (wobbleArm.getPosition() < .9) {
-                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+        // collecting rings through the belt
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad2.left_stick_y > 0.2) {
+                    wheelRack.setPower(-1);
+                    belt.setPower(-0.5);
+                } else if (gamepad2.left_stick_y < -0.2) {
+                    wheelRack.setPower(1);
+                    belt.setPower(0.5);
+                } else {
+                    wheelRack.setPower(0);
+                    belt.setPower(0);
+                }
             }
-            sleep(500);
-            claw.setPosition(0.5);
-            sleep(300);
+        }));
 
-            // go to white line
-            strafeLeft(0.5);
-            sleep(250);
-            goBackward(0.5);
-            sleep(650);
-        } else {
-            // go to box
-            goForward(0.5);
-            sleep(3000 - shootDistance);
-            stopMotors();
-            sleep(200);
-
-            // make room for wobble
-            strafeLeft(0.5);
-            sleep(300);
-            stopMotors();
-            sleep(200);
-
-            // drop wobble
-            while (wobbleArm.getPosition() < .9) {
-                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
-            }
-            sleep(500);
-            claw.setPosition(0.5);
-            sleep(500);
-
-            // go to white line
-            strafeLeft(0.5);
-            sleep(250);
-            goBackward(0.5);
-            sleep(1650);
-        }
-
-        stopMotors();
-        sleep(500);     // pause for servos to move
-
-
-        telemetry.addData("Path", "Complete");
-        telemetry.update();
-
-        if (tfod != null) {
-            tfod.shutdown();
-        }
-    }
-
-
-    private void initVuforia() {
         /*
-         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         *   launcher controls
          */
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
-        parameters.vuforiaLicenseKey = VUFORIA_KEY;
-        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+        // motor
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad2.left_trigger > 0.85) {
+                    launcher.setPower(-launcherPower);
+                } else {
+                    launcher.setPower(0);
+                }
+            }
+        }));
 
-        //  Instantiate the Vuforia engine
-        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        // servo
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            @Override
+            public void loop() {
+                if (gamepad2.right_trigger > 0.85) {
+                    launcherPush.setPosition(0.4);
+                } else {
+                    launcherPush.setPosition(0.7);
+                }
+            }
+        }));
+        /*
+         */
 
-        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
-    }
+        /*
+         *    motorPower
+         */
 
-    /**
-     * Initialize the TensorFlow Object Detection engine.
-     */
-    private void initTfod() {
-        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        tfodParameters.minResultConfidence = 0.8f;
-        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+        // increasing
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean increase = true; //Outside of loop()
+
+            @Override
+            public void loop() {
+                if (gamepad1.right_bumper && increase) {
+                    motorPower += 0.25;
+                    if (motorPower > 1) {
+                        motorPower = 1;
+                    }
+                    increase = false; // won't increase the motor power if the button is held down
+                } else if (!gamepad1.right_bumper)
+                    increase = true; // releasing the bumper  will allow you to increase again
+
+                motorPower = Math.round(motorPower * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+            }
+        }));
+
+        // decreasing
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean decrease = true; //Outside of loop()
+
+            @Override
+            public void loop() {
+                if (gamepad1.left_bumper && decrease) {
+                    motorPower -= 0.25;
+                    if (motorPower < 0) {
+                        motorPower = 0;
+                    }
+                    decrease = false; // won't decrease the motor power if the button is held down
+                } else if (!gamepad1.left_bumper)
+                    decrease = true; // releasing the bumper  will allow you to decrease again
+
+                motorPower = Math.round(motorPower * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+            }
+        }));
+
+        /*
+         */
+
+
+        /*
+         *    launcherPower
+         */
+
+        // increasing
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean increase = true; //Outside of loop()
+
+            @Override
+            public void loop() {
+                if (gamepad2.right_bumper && increase) {
+                    launcherPower += 0.025;
+                    if (launcherPower > 1) {
+                        launcherPower = 1;
+                    }
+                    increase = false; // won't increase the motor power if the button is held down
+                } else if (!gamepad2.right_bumper)
+                    increase = true; // releasing the bumper  will allow you to increase again
+
+                launcherPower = Math.round(launcherPower * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+            }
+        }));
+
+        // decreasing
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean decrease = true; //Outside of loop()
+
+            @Override
+            public void loop() {
+                if (gamepad2.left_bumper && decrease) {
+                    launcherPower -= 0.025;
+                    if (launcherPower < 0) {
+                        launcherPower = 0;
+                    }
+                    decrease = false; // won't decrease the motor power if the button is held down
+                } else if (!gamepad2.left_bumper)
+                    decrease = true; // releasing the bumper  will allow you to decrease again
+
+                launcherPower = Math.round(launcherPower * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+            }
+        }));
+
+        /*
+         */
     }
 
     /*
-     *  Method to perform a relative move, based on encoder counts.
-     *  Encoders are not reset as the move is based on the current position.
-     *  Move will stop if any of three conditions occur:
-     *  1) Move gets to the desired position
-     *  2) Move runs out of time
-     *  3) Driver stops the opmode running.
+     *    Robot Movement
      */
-    public void encoderDrive(double speed,
-                             double frontLeftInches, double frontRightInches, double backLeftInches, double backRightInches,
-                             double timeoutS) {
-        int newFrontLeftTarget;
-        int newFrontRightTarget;
-        int newBackLeftTarget;
-        int newBackRightTarget;
-
-        // Ensure that the opmode is still active
-        if (opModeIsActive()) {
-
-            // Determine new target position, and pass to motor controller
-            //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
-            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-frontLeftInches * COUNTS_PER_INCH);
-            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (frontRightInches * COUNTS_PER_INCH);
-            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-backLeftInches * COUNTS_PER_INCH);
-            newBackRightTarget = backRight.getCurrentPosition() + (int) (backRightInches * COUNTS_PER_INCH);
-            frontLeft.setTargetPosition(newFrontLeftTarget);
-            frontRight.setTargetPosition(newFrontRightTarget);
-            backLeft.setTargetPosition(newBackLeftTarget);
-            backRight.setTargetPosition(newBackRightTarget);
-
-            // Turn On RUN_TO_POSITION
-            frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-            // reset the timeout time and start motion.
-            runtime.reset();
-            frontLeft.setPower(speed);
-            frontRight.setPower(speed);
-            backLeft.setPower(speed);
-            backRight.setPower(speed);
-
-            // keep looping while we are still active, and there is time left, and both motors are running.
-            // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
-            // its target position, the motion will stop.  This is "safer" in the event that the robot will
-            // always end the motion as soon as possible.
-            // However, if you require that BOTH motors have finished their moves before the robot continues
-            // onto the next step, use (isBusy() || isBusy()) in the loop test.
-            while (opModeIsActive() &&
-                    (runtime.seconds() < timeoutS) &&
-                    (frontLeft.isBusy() && frontRight.isBusy())) { //might need to change this to all being busy..
-
-                // Display it for the driver.
-                telemetry.addData("Path1", "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
-                telemetry.addData("Path2", "Running at %7d :%7d : %7d : %7d",
-                        frontLeft.getCurrentPosition(),
-                        frontRight.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition());
-                telemetry.update();
-            }
-
-            // Stop all motion;
-            frontLeft.setPower(0);
-            frontRight.setPower(0);
-            backLeft.setPower(0);
-            backRight.setPower(0);
-
-            // Turn off RUN_TO_POSITION
-            frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-            sleep(100);   // optional pause after each move
+    @Override
+    public void mainLoop() {
+        if (gamepad1.left_stick_x < -0.85) {
+            strafeRight(motorPower);
+        } else if (gamepad1.left_stick_x > 0.85) {
+            strafeLeft(motorPower);
+        } else {
+            frontRight.setPower(motorPower * (-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+            frontLeft.setPower(motorPower * (this.gamepad1.left_stick_y -this.gamepad1.left_stick_x - this.gamepad1.right_stick_x));
+            backRight.setPower(motorPower * -(this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
+            backLeft.setPower(motorPower * -(-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
         }
-    }
-
-    protected void goBackward(double tgtPower) {
-        frontRight.setPower(-tgtPower*1.05);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower*1.05);
-        backLeft.setPower(tgtPower);
-    }
-
-    protected void goForward(double tgtPower) {
-        frontLeft.setPower(-tgtPower);
-        frontRight.setPower(tgtPower*1.05);
-        backLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower*1.05);
-    }
-
-    protected void stopMotors() {
-        frontRight.setPower(0);
-        frontLeft.setPower(0);
-        backRight.setPower(0);
-        backLeft.setPower(0);
+        telemetry.addData("Motor Power: ", motorPower);
+        telemetry.addData("Launcher Power: ", launcherPower);
+        telemetry.update();
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(-tgtPower*1.05);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower*1.05);
-        backLeft.setPower(tgtPower);
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower);
+        backLeft.setPower(-tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
-        frontRight.setPower(tgtPower*1.05);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower*1.05);
-        backLeft.setPower(-tgtPower);
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower);
+        backLeft.setPower(tgtPower);
     }
 }
