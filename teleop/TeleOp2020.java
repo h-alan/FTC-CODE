@@ -2,7 +2,11 @@ package org.firstinspires.ftc.teamcode.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorControllerEx;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.thread.TaskThread;
@@ -28,7 +32,7 @@ public class TeleOp2020 extends ThreadOpMode {
     private DcMotor belt;
 
     // launching motor
-    private DcMotor launcher;
+    private DcMotorEx launcher;
 
     // servos
     private Servo wobbleArm;
@@ -36,7 +40,12 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo claw;
 
     double motorPower = 0.75;
-    double launcherPower = 0.625;
+    double launcherRPM = 1000;
+
+    private double NEW_P = 10.0;
+    private double NEW_I = 0;
+    private double NEW_D = 0;
+
     /*
     --------------------------------------
     */
@@ -54,7 +63,7 @@ public class TeleOp2020 extends ThreadOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
 
         // Player 2
-        launcher = hardwareMap.get(DcMotor.class, "launcher");
+        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         launcherPush = hardwareMap.get(Servo.class, "launcherPush");
 
         wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
@@ -65,15 +74,59 @@ public class TeleOp2020 extends ThreadOpMode {
 
         wobbleArm.setPosition(1);
         wobbleArm.setPosition(wobbleArm.getPosition());
+
+        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        // change coefficients.
+        final int motorIndex = ((DcMotorEx)launcher).getPortNumber();
+        final DcMotorControllerEx motorControllerEx = (DcMotorControllerEx)launcher.getController();
+
         /*
         ----------------------------------------------
         */
+
+        // PID increasing
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean increase = true; //Outside of loop()
+
+            @Override
+            public void loop() {
+                if (gamepad2.y && increase) {
+                    NEW_P += 1;
+                    increase = false; // won't increase the motor power if the button is held down
+                    NEW_P = Math.round(NEW_P * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+
+                    launcher.setVelocityPIDFCoefficients(NEW_P, NEW_I, NEW_D, 0);
+                    //motorControllerEx.setPIDFCoefficients(motorIndex, DcMotor.RunMode.RUN_USING_ENCODER, pidNew);
+                } else if (!gamepad2.y)
+                    increase = true; // releasing the bumper  will allow you to increase again
+            }
+
+
+        }));
+
+        // PID decreasing
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean decrease = true; //Outside of loop()
+
+            @Override
+            public void loop() {
+                if (gamepad2.b && decrease) {
+                    NEW_P -= 1;
+                    decrease = false; // won't increase the motor power if the button is held down
+                    NEW_P = Math.round(NEW_P * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+
+                    PIDFCoefficients pidNew = new PIDFCoefficients(NEW_P, NEW_I, NEW_D, 0);
+                    launcher.setVelocityPIDFCoefficients(NEW_P, NEW_I, NEW_D, 0);
+                } else if (!gamepad2.b)
+                    decrease = true; // releasing the bumper  will allow you to increase again
+            }
+        }));
 
         // moves arm. GOD SERVO
         registerThread(new TaskThread(new TaskThread.Actions() {
             @Override
             public void loop() {
-
                 if (gamepad2.x) {
                     while (wobbleArm.getPosition() < .9) {
                         wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
@@ -92,9 +145,9 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.a) {
-                    claw.setPosition(1);
+                    claw.setPosition(0.35);
                 } else {
-                    claw.setPosition(0.5);
+                    claw.setPosition(1);
                 }
             }
         }));
@@ -125,9 +178,9 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.left_trigger > 0.85) {
-                    launcher.setPower(-launcherPower);
+                    launcher.setVelocity(-launcherRPM/60 * 383.6);
                 } else {
-                    launcher.setPower(0);
+                    launcher.setVelocity(0);
                 }
             }
         }));
@@ -193,7 +246,7 @@ public class TeleOp2020 extends ThreadOpMode {
 
 
         /*
-         *    launcherPower
+         *    launcherRPM
          */
 
         // increasing
@@ -203,15 +256,15 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.right_bumper && increase) {
-                    launcherPower += 0.025;
-                    if (launcherPower > 1) {
-                        launcherPower = 1;
+                    launcherRPM += 250;
+                    if (launcherRPM > 1) {
+                        launcherRPM = 1;
                     }
                     increase = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad2.right_bumper)
                     increase = true; // releasing the bumper  will allow you to increase again
 
-                launcherPower = Math.round(launcherPower * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+                launcherRPM = Math.round(launcherRPM * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
             }
         }));
 
@@ -222,15 +275,15 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.left_bumper && decrease) {
-                    launcherPower -= 0.025;
-                    if (launcherPower < 0) {
-                        launcherPower = 0;
+                    launcherRPM -= 250;
+                    if (launcherRPM < 0) {
+                        launcherRPM = 0;
                     }
                     decrease = false; // won't decrease the motor power if the button is held down
                 } else if (!gamepad2.left_bumper)
                     decrease = true; // releasing the bumper  will allow you to decrease again
 
-                launcherPower = Math.round(launcherPower * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
+                launcherRPM = Math.round(launcherRPM * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
             }
         }));
 
@@ -254,7 +307,9 @@ public class TeleOp2020 extends ThreadOpMode {
             backLeft.setPower(motorPower * -(-this.gamepad1.left_stick_y - this.gamepad1.left_stick_x + this.gamepad1.right_stick_x));
         }
         telemetry.addData("Motor Power: ", motorPower);
-        telemetry.addData("Launcher Power: ", launcherPower);
+        telemetry.addData("Launcher Power: ", launcherRPM);
+        PIDFCoefficients pidOrig = launcher.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+        telemetry.addData("P,I,D (orig)", "%.04f, %.04f, %.0f", pidOrig.p, pidOrig.i, pidOrig.d);
         telemetry.update();
     }
 
