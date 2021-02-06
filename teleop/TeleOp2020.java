@@ -40,7 +40,7 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo claw;
 
     double motorPower = 0.75;
-    double launcherRPM = 1000;
+    double launcherRPM = 500;
 
     private double NEW_P = 10.0;
     private double NEW_I = 0;
@@ -256,9 +256,9 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.right_bumper && increase) {
-                    launcherRPM += 250;
-                    if (launcherRPM > 1) {
-                        launcherRPM = 1;
+                    launcherRPM += 100;
+                    if (launcherRPM > 6000) {
+                        launcherRPM = 6000;
                     }
                     increase = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad2.right_bumper)
@@ -275,7 +275,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.left_bumper && decrease) {
-                    launcherRPM -= 250;
+                    launcherRPM -= 100;
                     if (launcherRPM < 0) {
                         launcherRPM = 0;
                     }
