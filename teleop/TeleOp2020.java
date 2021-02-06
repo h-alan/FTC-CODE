@@ -40,10 +40,10 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo claw;
 
     double motorPower = 0.75;
-    double launcherRPM = 500;
+    double launcherRPM = 400;
 
     private double NEW_P = 10.0;
-    private double NEW_I = 0;
+    private double NEW_I = 0.01;
     private double NEW_D = 0;
 
     /*
@@ -256,7 +256,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.right_bumper && increase) {
-                    launcherRPM += 100;
+                    launcherRPM += 20;
                     if (launcherRPM > 6000) {
                         launcherRPM = 6000;
                     }
@@ -275,7 +275,7 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.left_bumper && decrease) {
-                    launcherRPM -= 100;
+                    launcherRPM -= 20;
                     if (launcherRPM < 0) {
                         launcherRPM = 0;
                     }
