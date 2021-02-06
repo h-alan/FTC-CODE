@@ -40,9 +40,9 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo claw;
 
     double motorPower = 0.75;
-    double launcherRPM = 400;
+    double launcherRPM = 420;
 
-    private double NEW_P = 10.0;
+    private double NEW_P = 15.0;
     private double NEW_I = 0.01;
     private double NEW_D = 0;
 
