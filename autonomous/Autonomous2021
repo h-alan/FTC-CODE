@@ -4,10 +4,13 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
@@ -44,7 +47,7 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@Autonomous(name = "Autonomous2021Sleep", group = "Linear OpMode")
+@Autonomous(name = "Autonomous2021", group = "Linear OpMode")
 //@Disabled
 public class Autonomous2021 extends LinearOpMode {
 
@@ -62,24 +65,25 @@ public class Autonomous2021 extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 
     // moving motors
-    private DcMotor frontLeft;
-    private DcMotor frontRight;
-    private DcMotor backLeft;
-    private DcMotor backRight;
+    private DcMotorEx frontLeft;
+    private DcMotorEx frontRight;
+    private DcMotorEx backLeft;
+    private DcMotorEx backRight;
 
     // sweeping motors
     private DcMotor wheelRack;
     private DcMotor belt;
 
     // launching motor
-    private DcMotor launcher;
+    private DcMotorEx launcher;
 
     // servos
     private Servo wobbleArm;
     private Servo launcherPush;  // moves the rings into the launching motor
     private Servo claw;
 
-    double launcherPower = 0.75;
+    double launcherVelocity = 250;
+    double motorPower = 0.4;  // set the vehicle DC motor power.
 
     static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
     static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
@@ -88,6 +92,22 @@ public class Autonomous2021 extends LinearOpMode {
             (WHEEL_DIAMETER_INCHES * 3.1415);
     static final double DRIVE_SPEED = .1;
     static final double TURN_SPEED = 0.5;
+    static final double ringDistance = 39; // distance from origin to the location of ring detection (inch)
+
+    static final double AZoneDistance = 12; // distance from origin to the location of ring detection (inch)
+    static final double shootToAZoneDrop = 28; // distance from origin to the location of ring detection (inch)
+    static final double BZoneDistance = 34; // distance from origin to the location of ring detection (inch)
+    static final double shootToBZoneDrop = 6; // distance from origin to the location of ring detection (inch)
+    static final double CZoneDistance = 64; // distance from origin to the location of ring detection (inch)
+    static final double shootToCZoneDrop = 32; // distance from origin to the location of ring detection (inch)
+    double goForBakDistanceCorrection = 1.10;  //Calibration showed setting to go forward/backward 32 inches command, but actually achieved 29 inches when motor power was set as 0.6.
+    double goStrafeDistanceCorrection = 1.34;  //Calibration showed setting to strafe left/right 32 inches command, but actually achieved 24 inches when motor power was set as 0.6.
+
+    static final double shootRight = 12;
+    static final double shootDistance = 22;  //The distance from the ring detection to shooting position X direction
+    static final double shootLeft = 33;  //The distance from the ring detection to shooting position Y direction to strafe left
+    static final double goalRoom = 6;
+    static final double moreGoalRoom = 6;
 
     @Override
     public void runOpMode() {
@@ -102,12 +122,12 @@ public class Autonomous2021 extends LinearOpMode {
             tfod.activate();
         }
 
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+        frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
+        frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
+        backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
+        backRight = hardwareMap.get(DcMotorEx.class, "backRight");
 
-        launcher = hardwareMap.get(DcMotor.class, "launcher");
+        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         launcherPush = hardwareMap.get(Servo.class, "launcherPush");
 
         wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
@@ -118,23 +138,32 @@ public class Autonomous2021 extends LinearOpMode {
         claw = hardwareMap.get(Servo.class, "claw");
 
         claw.setPosition(1);
+        telemetry.addData("position arm", wobbleArm.getPosition());
+        wobbleArm.setPosition(0);
+        telemetry.addData("position armfter", wobbleArm.getPosition());
+        /*
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontLeft.setPositionPIDFCoefficients(150);
+        frontRight.setPositionPIDFCoefficients(150);
+        backLeft.setPositionPIDFCoefficients(150);
+        backRight.setPositionPIDFCoefficients(150);
+        */
+        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        launcher.setVelocityPIDFCoefficients(150, 0, 0, 0);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
         //put encoder stuff IN HERE; while opModeisActive is for everything
-        while (wobbleArm.getPosition() > 0.35) {
-            wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
-        }
         sleep(500);
 
-        goForward(0.5);
-        sleep(1300);
+        goForwardEncoder(ringDistance*goForBakDistanceCorrection, motorPower);
 
-        stopMotors();
-        sleep(200);
+        //*
 
-        //ring detection time
         String objectsFound = "None";
 
         for (int j = 0; j < 5000000; j++) {
@@ -158,120 +187,88 @@ public class Autonomous2021 extends LinearOpMode {
                 }
             }
         }
-        int shootDistance = 840;
-        goForward(0.5);
-        sleep(shootDistance);
-        strafeLeft(0.5);
-        sleep(2000);
-        stopMotors();
+        launcherPush.setPosition(0.7);
+        launcher.setVelocity(-launcherVelocity / 60 * 383.6);
+        goForwardEncoder(shootDistance*goForBakDistanceCorrection, motorPower);
+        strafeRightEncoder(shootRight*goStrafeDistanceCorrection, motorPower);
+        //stopMotors();
+
         //Starts shooting
-        launcher.setPower(-0.61);
-        sleep(1500);
+        //launcher.setVelocity(-250 / 60 * 383.6);
+        sleep(200);
         launcherPush.setPosition(0.3);
-        sleep(1000);
+        sleep(200);
         launcherPush.setPosition(0.7);
-        sleep(1000);
+        sleep(200);
+        telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
         launcherPush.setPosition(0.3);
-        sleep(1000);
+        sleep(200);
         launcherPush.setPosition(0.7);
-        sleep(1000);
+        sleep(200);
+        telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
         launcherPush.setPosition(0.3);
-        sleep(1000);
+        sleep(200);
         launcherPush.setPosition(0.7);
-        launcher.setPower(0);
+        telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
+        launcher.setVelocity(0);
+
         //goes back to the position
-        strafeRight(0.5);
-        sleep(2000);
-        /* unused power shot goal code
-        strafeLeft(0.5);
-        sleep(1800);
-        stopMotors();
-        launcher.setPower(-0.6);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-
-        strafeLeft(0.5);
-        sleep(700);
-        stopMotors();
-        launcher.setPower(-0.6);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-
-        strafeLeft(0.5);
-        sleep(800);
-        stopMotors();
-        launcher.setPower(-0.6);
-        sleep(1000);
-        launcherPush.setPosition(0.3);
-        sleep(1000);
-        launcherPush.setPosition(0.7);
-*/
         // moving to the correct square based on the amount of rings
-
         if (objectsFound.equals("None")) {
             // go to box
-            goForward(0.5);
-            sleep(100);
-            stopMotors();
-            sleep(200);
+            strafeRightEncoder(shootToAZoneDrop*goStrafeDistanceCorrection, motorPower);
+            goForwardEncoder(AZoneDistance*goForBakDistanceCorrection, motorPower);
 
             // make room for wobble goal
-            strafeLeft(0.5);
-            sleep(450);
-            stopMotors();
-            sleep(200);
+            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
 
             // drop wobble goal
+            stopMotors();
+            sleep(200);
             while (wobbleArm.getPosition() < .9) {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
             sleep(500);
             claw.setPosition(0.5);
             sleep(500);
+            //make room for wobble goal again
+            strafeLeftEncoder(moreGoalRoom*goForBakDistanceCorrection, motorPower);
             // go to white line
-            strafeLeft(0.5);
-            sleep(250);
         } else if (objectsFound.equals("Single")) {
             // go to box
-            goForward(0.5);
-            sleep(2100 - shootDistance);
-            strafeLeft(0.5);
-            sleep(1600);
-
-            stopMotors();
-            sleep(200);
-
-            // drop wobble
-            while (wobbleArm.getPosition() < .9) {
-                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
-            }
-            sleep(500);
-            claw.setPosition(0.5);
-            sleep(300);
-
-            // go to white line
-            strafeLeft(0.5);
-            sleep(250);
-            goBackward(0.5);
-            sleep(650);
-        } else {
-            // go to box
-            goForward(0.5);
-            sleep(3000 - shootDistance);
-            stopMotors();
-            sleep(200);
+            strafeRightEncoder(shootToBZoneDrop*goStrafeDistanceCorrection, motorPower);
+            goForwardEncoder(BZoneDistance*goForBakDistanceCorrection, motorPower);
 
             // make room for wobble
-            strafeLeft(0.5);
-            sleep(300);
-            stopMotors();
-            sleep(200);
+            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
 
             // drop wobble
+            stopMotors();
+            sleep(200);
+            while (wobbleArm.getPosition() < .9) {
+                wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+            }
+            sleep(500);
+            claw.setPosition(0.5);
+            sleep(300);
+
+            //make room for wobble goal again
+            strafeLeftEncoder(moreGoalRoom*goStrafeDistanceCorrection, motorPower);
+            // go to white line
+            goBackwardEncoder((BZoneDistance-8)*goForBakDistanceCorrection, motorPower);
+
+            //sleep(650);
+        } else {
+            // go to box
+            strafeRightEncoder(shootToCZoneDrop*goForBakDistanceCorrection, motorPower);
+            goForwardEncoder(CZoneDistance*goForBakDistanceCorrection, motorPower);
+
+            // make room for wobble
+            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
+
+            // drop wobble
+            stopMotors();
+            sleep(200);
             while (wobbleArm.getPosition() < .9) {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
@@ -279,19 +276,18 @@ public class Autonomous2021 extends LinearOpMode {
             claw.setPosition(0.5);
             sleep(500);
 
+            //make room for wobble goal again
+            strafeLeftEncoder(moreGoalRoom*goStrafeDistanceCorrection, motorPower);
             // go to white line
-            strafeLeft(0.5);
-            sleep(250);
-            goBackward(0.5);
-            sleep(1650);
+            goBackwardEncoder((CZoneDistance-8)*goForBakDistanceCorrection, motorPower);
         }
 
         stopMotors();
         sleep(500);     // pause for servos to move
 
-
         telemetry.addData("Path", "Complete");
         telemetry.update();
+        //*/
 
         if (tfod != null) {
             tfod.shutdown();
@@ -334,40 +330,70 @@ public class Autonomous2021 extends LinearOpMode {
      *  2) Move runs out of time
      *  3) Driver stops the opmode running.
      */
-    public void encoderDrive(double speed,
-                             double frontLeftInches, double frontRightInches, double backLeftInches, double backRightInches,
-                             double timeoutS) {
+
+    protected void encoderDrive(double speed,
+                                double FrontLeftInches, double FrontRightInches, double BackLeftInches, double BackRightInches,
+                                double timeoutS) {
         int newFrontLeftTarget;
         int newFrontRightTarget;
         int newBackLeftTarget;
         int newBackRightTarget;
+
+        //double adjustRT = 1.01; // Right distance adjustment 1% more than left
+        // Speed ramp on start of move to avoid wheel slip
+        final double MINSPEED = 0.30; // Start at this power
+        final double SPEEDINCR = 0.2; // And increment by this much each cycle
+        double curSpeed; // Keep track of speed as we ramp
 
         // Ensure that the opmode is still active
         if (opModeIsActive()) {
 
             // Determine new target position, and pass to motor controller
             //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
-            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-frontLeftInches * COUNTS_PER_INCH);
-            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (frontRightInches * COUNTS_PER_INCH);
-            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-backLeftInches * COUNTS_PER_INCH);
-            newBackRightTarget = backRight.getCurrentPosition() + (int) (backRightInches * COUNTS_PER_INCH);
+            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-FrontLeftInches * COUNTS_PER_INCH);
+            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (FrontRightInches * COUNTS_PER_INCH);
+            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-BackLeftInches * COUNTS_PER_INCH);
+            newBackRightTarget = backRight.getCurrentPosition() + (int) (BackRightInches * COUNTS_PER_INCH);
             frontLeft.setTargetPosition(newFrontLeftTarget);
             frontRight.setTargetPosition(newFrontRightTarget);
             backLeft.setTargetPosition(newBackLeftTarget);
             backRight.setTargetPosition(newBackRightTarget);
 
+            while (frontLeft.getTargetPosition() != newFrontLeftTarget) {
+                frontLeft.setTargetPosition(newFrontLeftTarget);
+                sleep(1);
+            }
+            while (frontRight.getTargetPosition() != newFrontRightTarget) {
+                frontRight.setTargetPosition(newFrontRightTarget);
+                sleep(1);
+            }
+            while (backLeft.getTargetPosition() != newBackLeftTarget) {
+                backLeft.setTargetPosition(newBackLeftTarget);
+                sleep(1);
+            }
+            while (backRight.getTargetPosition() != newBackRightTarget) {
+                backRight.setTargetPosition(newBackRightTarget);
+                sleep(1);
+            }
+
+
             // Turn On RUN_TO_POSITION
             frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             // reset the timeout time and start motion.
             runtime.reset();
-            frontLeft.setPower(speed);
-            frontRight.setPower(speed);
-            backLeft.setPower(speed);
-            backRight.setPower(speed);
+
+            curSpeed = Math.abs(speed); // Make sure its positive
+            //curSpeed = Math.min(MINSPEED, speed);
+
+
+            frontLeft.setPower(curSpeed);
+            backLeft.setPower(curSpeed);
+            frontRight.setPower(curSpeed);
+            backRight.setPower(curSpeed);
 
             // keep looping while we are still active, and there is time left, and both motors are running.
             // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
@@ -377,7 +403,32 @@ public class Autonomous2021 extends LinearOpMode {
             // onto the next step, use (isBusy() || isBusy()) in the loop test.
             while (opModeIsActive() &&
                     (runtime.seconds() < timeoutS) &&
-                    (frontLeft.isBusy() && frontRight.isBusy())) { //might need to change this to all being busy..
+                    (frontLeft.isBusy() && frontRight.isBusy() && backLeft.isBusy()&& backRight.isBusy())) { //might need to change this to all being busy..
+/*
+                    // Ramp up motor powers as needed
+                    if (Math.abs(frontLeft.getCurrentPosition()- newFrontLeftTarget) < (0.3*Math.abs(newFrontLeftTarget)))
+                    {
+                        telemetry.addData("test", "qao hi");
+                        if (curSpeed > MINSPEED) {
+                            curSpeed -= SPEEDINCR;
+                        }
+                        else curSpeed = MINSPEED;
+
+                    }
+                    else {
+                        // Ramp up motor powers as needed
+                        if (curSpeed < speed) {
+                            curSpeed += SPEEDINCR;
+                        } else curSpeed = speed;
+                    }
+
+ */
+                // And rewrite the motor speeds
+                frontLeft.setPower(curSpeed);
+                backLeft.setPower(curSpeed);
+                frontRight.setPower(curSpeed);
+                backRight.setPower(curSpeed);
+
 
                 // Display it for the driver.
                 telemetry.addData("Path1", "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
@@ -404,17 +455,17 @@ public class Autonomous2021 extends LinearOpMode {
     }
 
     protected void goBackward(double tgtPower) {
-        frontRight.setPower(-tgtPower*1.05);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower*1.05);
-        backLeft.setPower(tgtPower);
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower);
+        backLeft.setPower(-tgtPower);
     }
 
     protected void goForward(double tgtPower) {
-        frontLeft.setPower(-tgtPower);
-        frontRight.setPower(tgtPower*1.05);
-        backLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower*1.05);
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower);
+        backLeft.setPower(tgtPower);
     }
 
     protected void stopMotors() {
@@ -425,16 +476,53 @@ public class Autonomous2021 extends LinearOpMode {
     }
 
     private void strafeRight(double tgtPower) {
-        frontRight.setPower(-tgtPower*1.05);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower*1.05);
-        backLeft.setPower(tgtPower);
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(tgtPower);
+        backRight.setPower(-tgtPower);
+        backLeft.setPower(-tgtPower);
     }
 
     private void strafeLeft(double tgtPower) {
-        frontRight.setPower(tgtPower*1.05);
-        frontLeft.setPower(tgtPower);
-        backRight.setPower(-tgtPower*1.05);
-        backLeft.setPower(-tgtPower);
+        frontRight.setPower(-tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower);
+        backLeft.setPower(tgtPower);
     }
+
+
+    protected void goBackwardEncoder(double goBakInches, double mymotorPower) {
+        //frontRight.setPower(tgtPower);
+        //frontLeft.setPower(-tgtPower);
+        //backRight.setPower(tgtPower);
+        //backLeft.setPower(-tgtPower);
+        encoderDrive(mymotorPower, -goBakInches, -goBakInches, -goBakInches, -goBakInches, 30);
+
+    }
+
+    protected void goForwardEncoder(double goForInches, double mymotorPower) {
+        //frontRight.setPower(-tgtPower);
+        //frontLeft.setPower(tgtPower);
+        //backRight.setPower(-tgtPower);
+        //backLeft.setPower(tgtPower);
+        encoderDrive(mymotorPower, goForInches, goForInches, goForInches, goForInches, 30);
+
+    }
+
+    private void strafeRightEncoder(double strafeRightInch, double mymotorPower) {
+        //frontRight.setPower(tgtPower);
+        //frontLeft.setPower(tgtPower);
+        //backRight.setPower(-tgtPower);
+        //backLeft.setPower(-tgtPower);
+        encoderDrive(mymotorPower, strafeRightInch, -strafeRightInch, -strafeRightInch, strafeRightInch, 30);
+
+    }
+
+    private void strafeLeftEncoder(double strafeLeftInch, double mymotorPower) {
+        //frontRight.setPower(-tgtPower);
+        //frontLeft.setPower(-tgtPower);
+        //backRight.setPower(tgtPower);
+        //backLeft.setPower(tgtPower);
+        encoderDrive(mymotorPower, -strafeLeftInch, strafeLeftInch, strafeLeftInch, -strafeLeftInch, 30);
+    }
+
 }
