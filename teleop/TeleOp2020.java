@@ -12,6 +12,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.thread.TaskThread;
 import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
 
+import static java.lang.Thread.sleep;
+
 //Extend ThreadOpMode rather than OpMode
 //Copied and Pasted TeleOp2019
 @TeleOp(name = "Real TeleOp 2020", group = "Threaded Opmode")
@@ -40,10 +42,10 @@ public class TeleOp2020 extends ThreadOpMode {
     private Servo claw;
 
     double motorPower = 0.75;
-    double launcherRPM = 420;
+    double launcherRPM = 250;
 
-    private double NEW_P = 15.0;
-    private double NEW_I = 0.01;
+    private double NEW_P = 150.0;
+    private double NEW_I = 0;
     private double NEW_D = 0;
 
     /*
@@ -175,14 +177,19 @@ public class TeleOp2020 extends ThreadOpMode {
 
         // motor
         registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean shooting = false; //Outside of loop()
+
             @Override
             public void loop() {
-                if (gamepad2.left_trigger > 0.85) {
-                    launcher.setVelocity(-launcherRPM/60 * 383.6);
-                } else {
+                if (!shooting && gamepad2.left_trigger > 0.85 ) {
+                    shooting = true; // won't increase the motor power if the button is held down
+                    launcher.setVelocity(-launcherRPM / 60 * 383.6); // start the motor
+                } else if (shooting && gamepad2.left_trigger > 0.85) {
+                    shooting = false; // releasing the bumper  will allow you to increase again
                     launcher.setVelocity(0);
                 }
             }
+
         }));
 
         // servo
@@ -190,10 +197,30 @@ public class TeleOp2020 extends ThreadOpMode {
             @Override
             public void loop() {
                 if (gamepad2.right_trigger > 0.85) {
-                    launcherPush.setPosition(0.4);
-                } else {
+                    for (int i = 0; i < 3; i++) {
+                        launcherPush.setPosition(0.5);
+
+                        try {
+                            sleep(200);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        launcherPush.setPosition(0.7);
+
+                        try {
+                            sleep(200);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                /*
+                else {
                     launcherPush.setPosition(0.7);
                 }
+
+                 */
             }
         }));
         /*
@@ -310,6 +337,7 @@ public class TeleOp2020 extends ThreadOpMode {
         telemetry.addData("Launcher Power: ", launcherRPM);
         PIDFCoefficients pidOrig = launcher.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
         telemetry.addData("P,I,D (orig)", "%.04f, %.04f, %.0f", pidOrig.p, pidOrig.i, pidOrig.d);
+        telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
         telemetry.update();
     }
 
