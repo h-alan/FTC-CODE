@@ -83,6 +83,8 @@ public class TeleOp2020 extends ThreadOpMode {
         final int motorIndex = ((DcMotorEx)launcher).getPortNumber();
         final DcMotorControllerEx motorControllerEx = (DcMotorControllerEx)launcher.getController();
 
+        launcher.setVelocityPIDFCoefficients(NEW_P, NEW_I, NEW_D, 0);
+
         /*
         ----------------------------------------------
         */
@@ -270,7 +272,6 @@ public class TeleOp2020 extends ThreadOpMode {
 
         /*
          */
-
 
         /*
          *    launcherRPM
