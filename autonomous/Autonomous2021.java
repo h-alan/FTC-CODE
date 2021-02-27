@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -12,6 +13,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
@@ -82,8 +87,13 @@ public class Autonomous2021 extends LinearOpMode {
     private Servo launcherPush;  // moves the rings into the launching motor
     private Servo claw;
 
-    double launcherVelocity = 250;
+    double launcherVelocity = 223;
     double motorPower = 0.4;  // set the vehicle DC motor power.
+
+    // imu stuff
+    BNO055IMU imu;
+    Orientation lastAngles = new Orientation();
+    double globalAngle, power = .30, correction;
 
     static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
     static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
@@ -108,6 +118,10 @@ public class Autonomous2021 extends LinearOpMode {
     static final double shootLeft = 33;  //The distance from the ring detection to shooting position Y direction to strafe left
     static final double goalRoom = 6;
     static final double moreGoalRoom = 6;
+    static final double powerShot1 = 13.5;
+    static final double powerShot2 = 7;
+    static final double powerShot3 = 6.5;
+    static final double toShoot = 5;
 
     @Override
     public void runOpMode() {
@@ -137,10 +151,45 @@ public class Autonomous2021 extends LinearOpMode {
         wobbleArm = hardwareMap.get(Servo.class, "arm");
         claw = hardwareMap.get(Servo.class, "claw");
 
-        claw.setPosition(1);
+        claw.setPosition(0.5);
         telemetry.addData("position arm", wobbleArm.getPosition());
         wobbleArm.setPosition(0);
         telemetry.addData("position armfter", wobbleArm.getPosition());
+
+        /*
+        ------------------------IMU SETUP------------------------
+        */
+
+        BNO055IMU.Parameters imuParameters = new BNO055IMU.Parameters();
+
+        imuParameters.mode = BNO055IMU.SensorMode.IMU;
+        imuParameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        imuParameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imuParameters.loggingEnabled = false;
+
+        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+        // and named "imu".
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+
+        imu.initialize(imuParameters);
+
+        // caliblrating imu
+        telemetry.addData("Mode", "calibrating...");
+        telemetry.update();
+
+        while (!isStopRequested() && !imu.isGyroCalibrated()) {
+            sleep(50);
+            idle();
+        }
+
+        telemetry.addData("Mode", "waiting for start");
+        telemetry.addData("imu calib status", imu.getCalibrationStatus().toString());
+        telemetry.update();
+        /*
+        ----------------------------------------------------------------
+        */
+
         /*
         frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -190,37 +239,59 @@ public class Autonomous2021 extends LinearOpMode {
         launcherPush.setPosition(0.7);
         launcher.setVelocity(-launcherVelocity / 60 * 383.6);
         goForwardEncoder(shootDistance*goForBakDistanceCorrection, motorPower);
-        strafeRightEncoder(shootRight*goStrafeDistanceCorrection, motorPower);
         //stopMotors();
+
+        //first adjust before shoot
+        rotate((int)(0 - getAngle()),0.1);
+        resetAngle();
+        telemetry.addData("Angle", getAngle());
+        telemetry.update();
 
         //Starts shooting
         //launcher.setVelocity(-250 / 60 * 383.6);
         sleep(200);
+        strafeLeftEncoder(powerShot1*goStrafeDistanceCorrection, 0.2);
+/*        rotate((int)(0 - getAngle()),0.1);
+        resetAngle();*/
+        sleep(200);
         launcherPush.setPosition(0.3);
         sleep(200);
         launcherPush.setPosition(0.7);
         sleep(200);
         telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
+        strafeLeftEncoder(powerShot2*goStrafeDistanceCorrection, 0.2);
+/*        rotate((int)(0 - getAngle()),0.1);
+        resetAngle();*/
+        telemetry.addData("Angle", getAngle());
+        telemetry.update();
         launcherPush.setPosition(0.3);
         sleep(200);
         launcherPush.setPosition(0.7);
-        sleep(200);
+
         telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
+        strafeLeftEncoder(powerShot3*goStrafeDistanceCorrection, 0.2);
+/*        rotate((int)(0 - getAngle()),0.1);
+        resetAngle();*/
+        telemetry.addData("Angle", getAngle());
+        telemetry.update();
         launcherPush.setPosition(0.3);
         sleep(200);
         launcherPush.setPosition(0.7);
+        sleep(200);
         telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
         launcher.setVelocity(0);
+/*        rotate((int)(0 - getAngle()),0.1);
+        resetAngle();*/
+        telemetry.addData("Angle", getAngle());
+        telemetry.update();
+        strafeRightEncoder((powerShot1+powerShot2+powerShot3+toShoot)*goStrafeDistanceCorrection, motorPower);
 
         //goes back to the position
         // moving to the correct square based on the amount of rings
         if (objectsFound.equals("None")) {
             // go to box
-            strafeRightEncoder(shootToAZoneDrop*goStrafeDistanceCorrection, motorPower);
+            strafeRightEncoder((shootToAZoneDrop-goalRoom)*goStrafeDistanceCorrection, motorPower);
             goForwardEncoder(AZoneDistance*goForBakDistanceCorrection, motorPower);
-
-            // make room for wobble goal
-            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
 
             // drop wobble goal
             stopMotors();
@@ -229,19 +300,16 @@ public class Autonomous2021 extends LinearOpMode {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
             sleep(500);
-            claw.setPosition(0.5);
+            claw.setPosition(1);
             sleep(500);
             //make room for wobble goal again
             strafeLeftEncoder(moreGoalRoom*goForBakDistanceCorrection, motorPower);
             // go to white line
         } else if (objectsFound.equals("Single")) {
             // go to box
-            strafeRightEncoder(shootToBZoneDrop*goStrafeDistanceCorrection, motorPower);
             goForwardEncoder(BZoneDistance*goForBakDistanceCorrection, motorPower);
 
             // make room for wobble
-            strafeLeftEncoder(goalRoom*goStrafeDistanceCorrection, motorPower);
-
             // drop wobble
             stopMotors();
             sleep(200);
@@ -249,7 +317,7 @@ public class Autonomous2021 extends LinearOpMode {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
             sleep(500);
-            claw.setPosition(0.5);
+            claw.setPosition(1);
             sleep(300);
 
             //make room for wobble goal again
@@ -273,7 +341,7 @@ public class Autonomous2021 extends LinearOpMode {
                 wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
             }
             sleep(500);
-            claw.setPosition(0.5);
+            claw.setPosition(1);
             sleep(500);
 
             //make room for wobble goal again
@@ -455,17 +523,17 @@ public class Autonomous2021 extends LinearOpMode {
     }
 
     protected void goBackward(double tgtPower) {
-        frontRight.setPower(tgtPower);
-        frontLeft.setPower(-tgtPower);
-        backRight.setPower(tgtPower);
-        backLeft.setPower(-tgtPower);
-    }
-
-    protected void goForward(double tgtPower) {
         frontRight.setPower(-tgtPower);
         frontLeft.setPower(tgtPower);
         backRight.setPower(-tgtPower);
         backLeft.setPower(tgtPower);
+    }
+
+    protected void goForward(double tgtPower) {
+        frontRight.setPower(tgtPower);
+        frontLeft.setPower(-tgtPower);
+        backRight.setPower(tgtPower);
+        backLeft.setPower(-tgtPower);
     }
 
     protected void stopMotors() {
@@ -523,6 +591,96 @@ public class Autonomous2021 extends LinearOpMode {
         //backRight.setPower(tgtPower);
         //backLeft.setPower(tgtPower);
         encoderDrive(mymotorPower, -strafeLeftInch, strafeLeftInch, strafeLeftInch, -strafeLeftInch, 30);
+    }
+
+    /*
+       ----------------------------imu methods----------------------------
+        */
+    /*
+     * Resets the cumulative angle tracking to zero.
+     */
+    protected void resetAngle() {
+        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        globalAngle = 0;
+    }
+
+    /*
+     * Get current cumulative angle rotation from last reset.
+     * @return Angle in degrees. + = left, - = right.
+     */
+    protected double getAngle() {
+
+        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+
+        if (deltaAngle < -180)
+            deltaAngle += 360;
+        else if (deltaAngle > 180)
+            deltaAngle -= 360;
+
+        globalAngle += deltaAngle;
+
+        lastAngles = angles;
+
+        return globalAngle;
+    }
+
+    /*
+     * See if we are moving in a straight line and if not return a power correction value.
+     *
+     * @return Power adjustment, + is adjust left - is adjust right.
+     */
+    protected double checkDirection() {
+        // The gain value determines how sensitive the correction is to direction changes.
+        // You will have to experiment with your robot to get small smooth direction changes
+        // to stay on a straight line.
+        double correction, angle, gain = .10;
+
+        angle = getAngle();
+
+        if (angle == 0)
+            correction = 0;             // no adjustment.
+        else
+            correction = -angle;        // reverse sign of angle for correction.
+
+        correction = correction * gain;
+
+        return correction;
+    }
+    /*
+    -----------------------------------------------------------
+     */
+
+    protected void rotate(int degrees, double Power) {
+        resetAngle();
+        stopMotors();
+        double tgtPower = Power;
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating clockwise (right).
+
+        if (degrees > 0) {   // turn left
+            frontLeft.setPower(tgtPower);
+            backLeft.setPower(tgtPower);
+            frontRight.setPower(tgtPower);
+            backRight.setPower(tgtPower);
+            while (getAngle() < degrees) {
+                sleep(1);
+            }
+        } else if (degrees < 0) {   // turn right
+            frontLeft.setPower(-tgtPower);
+            backLeft.setPower(-tgtPower);
+            frontRight.setPower(-tgtPower);
+            backRight.setPower(-tgtPower);
+            while (getAngle() > degrees) {
+                sleep(1);
+            }
+
+        } else return;
+
+        stopMotors();
+        sleep(100);
+        return;
     }
 
 }
