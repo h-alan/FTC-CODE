@@ -36,10 +36,12 @@ public class TeleOp2020 extends ThreadOpMode {
     // launching motor
     private DcMotorEx launcher;
 
+    //armotor
+    private DcMotorEx claw;
+
     // servos
     private Servo wobbleArm;
     private Servo launcherPush;  // moves the rings into the launching motor
-    private Servo claw;
 
     double motorPower = 0.75;
     double launcherRPM = 250;
@@ -56,7 +58,10 @@ public class TeleOp2020 extends ThreadOpMode {
     double goStrafeDistanceCorrection = 1.34;  //Calibration showed setting to strafe left/right 32 inches command, but actually achieved 24 inches when motor power was set as 0.6.
 
     double launcherVelocity = 225;
-    double motorPowerAuto = 0.4;  // set the vehicle DC motor power.
+    double motorPowerAuto = 0.8;  // set the vehicle DC motor power.
+    int armDistance = 300;
+    double armSpeed = 0.4;
+    //boolean extend = false;
 
     static final double COUNTS_PER_MOTOR_REV = 383.6;    // eg: TETRIX Motor Encoder
     static final double DRIVE_GEAR_REDUCTION = 1.0;     // This is < 1.0 if geared UP... maybe 1??
@@ -78,10 +83,10 @@ public class TeleOp2020 extends ThreadOpMode {
         */
 
         // Player 1
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+        frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
+        frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
+        backRight = hardwareMap.get(DcMotorEx.class, "backRight");
+        backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
 
         // Player 2
         launcher = hardwareMap.get(DcMotorEx.class, "launcher");
@@ -91,12 +96,13 @@ public class TeleOp2020 extends ThreadOpMode {
         belt = hardwareMap.get(DcMotor.class, "belt");
         //arm is god servo
         wobbleArm = hardwareMap.get(Servo.class, "arm");
-        claw = hardwareMap.get(Servo.class, "claw");
+        claw = hardwareMap.get(DcMotorEx.class, "claw");
 
-        wobbleArm.setPosition(1);
+        wobbleArm.setPosition(0.65);
         wobbleArm.setPosition(wobbleArm.getPosition());
 
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // change coefficients.
         final int motorIndex = ((DcMotorEx)launcher).getPortNumber();
@@ -108,7 +114,7 @@ public class TeleOp2020 extends ThreadOpMode {
         ----------------------------------------------
         */
 
-        // PID increasing
+        /*// PID increasing
         registerThread(new TaskThread(new TaskThread.Actions() {
             boolean increase = true; //Outside of loop()
 
@@ -123,46 +129,143 @@ public class TeleOp2020 extends ThreadOpMode {
                     //motorControllerEx.setPIDFCoefficients(motorIndex, DcMotor.RunMode.RUN_USING_ENCODER, pidNew);
                 } else if (!gamepad2.y)
                     increase = true; // releasing the bumper  will allow you to increase again
-            }
+            }*/
 
 
-        }));
-
-        // PID decreasing
+/*
+        //extend claw
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean decrease = true; //Outside of loop()
-
+            int newArmDistance;
             @Override
             public void loop() {
+                if (gamepad2.x && !extend) {
+                    newArmDistance = claw.getCurrentPosition() + (int) (armDistance);
+                    claw.setTargetPosition(newArmDistance);
+                    while (claw.getTargetPosition() != newArmDistance) {
+                        claw.setTargetPosition(newArmDistance);
+                        try {
+                            sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    claw.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    double curSpeed = Math.abs(armSpeed); // Make sure its positive
+                    claw.setPower(curSpeed);
+                    while ((claw.isBusy())) {
+                        claw.setPower(curSpeed);
+                        telemetry.addData("Path1", "Running to %7d", newArmDistance);
+                        telemetry.addData("Path2", "Running at %7d",
+                                claw.getCurrentPosition());
+                        telemetry.update();
+                        if(gamepad2.a || gamepad2.y) {
+                            break;
+                        }
+                    }
+                    claw.setPower(0);
+                    claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    extend = true;
+                }
+            }
+        }));
 
+        //unextend claw
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            int newArmDistance;
+            @Override
+            public void loop() {
+                if (gamepad2.a && extend) {
+                    newArmDistance = claw.getCurrentPosition() + (int) (-armDistance);
+                    claw.setTargetPosition(newArmDistance);
+                    while (claw.getTargetPosition() != newArmDistance) {
+                        claw.setTargetPosition(newArmDistance);
+                        try {
+                            sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    claw.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    double curSpeed = Math.abs(armSpeed); // Make sure its positive
+                    claw.setPower(curSpeed);
+                    while ((claw.isBusy())) {
+                        claw.setPower(curSpeed);
+                        telemetry.addData("Path1", "Running to %7d", newArmDistance);
+                        telemetry.addData("Path2", "Running at %7d",
+                                claw.getCurrentPosition());
+                        telemetry.update();
+                        if(gamepad2.x || gamepad2.y) {
+                            break;
+                        }
+                    }
+                    claw.setPower(0);
+                    claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    extend = false;
+                }
+            }
+        }));
+*/
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean increase = true; //Outside of loop()
+            boolean extend = false;
+            @Override
+            public void loop() {
+                if (gamepad2.x && increase) {
+                        //Increase launcher power
+                        if(extend) {
+                            claw.setPower(0.4);
+                            try {
+                                sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            claw.setPower(0);
+                            extend = false;
+                        }
+                        else {
+                            claw.setPower(-0.4);
+                            try {
+                                sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            claw.setPower(0);
+                            extend = true;
+                        }
+                        increase = false; // won't increase the motor power if the button is held down
+                } else if (!gamepad2.x) {
+                    increase = true; // releasing the bumper  will allow you to increase again
+                }
             }
         }));
 
         // moves arm. GOD SERVO
         registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean increase = true; //Outside of loop()
+            boolean lower = false;
             @Override
             public void loop() {
-                if (gamepad2.x) {
-                    while (wobbleArm.getPosition() < .9) {
-                        wobbleArm.setPosition(wobbleArm.getPosition() + 0.0055);
+                if (gamepad2.y && increase) {
+                    //Increase launcher power
+                    if(!lower) {
+                        while (wobbleArm.getPosition() < 0.97) {
+                            wobbleArm.setPosition(wobbleArm.getPosition() + 0.0020);
+                            telemetry.addData("Path2", wobbleArm.getPosition());
+                            telemetry.update();
+                        }
+                        lower = true;
                     }
-
-                } else {
-                    while (wobbleArm.getPosition() > 0.35) {
-                        wobbleArm.setPosition(wobbleArm.getPosition() - 0.0040);
+                    else {
+                        while (wobbleArm.getPosition() > 0.67) {
+                            wobbleArm.setPosition(wobbleArm.getPosition() - 0.0025);
+                            telemetry.addData("Path2", wobbleArm.getPosition());
+                            telemetry.update();
+                        }
+                        lower = false;
                     }
-                }
-            }
-        }));
-
-        // open and close claw
-        registerThread(new TaskThread(new TaskThread.Actions() {
-            @Override
-            public void loop() {
-                if (gamepad2.a) {
-                    claw.setPosition(0.35);
-                } else {
-                    claw.setPosition(1);
+                    increase = false; // won't increase the motor power if the button is held down
+                } else if (!gamepad2.y) {
+                    increase = true; // releasing the bumper  will allow you to increase again
                 }
             }
         }));
