@@ -266,7 +266,7 @@ public class TurnTest extends LinearOpMode {
 
         sleep(200);
         launcherPush.setPosition(0.7);
-        rotate((int)(14),0.05);
+        rotate((int)(5),0.05);
         while(launcher.getVelocity()/383.6*60 > -205){
             telemetry.addData("Velocity: ", launcher.getVelocity()/383.6*60);
             telemetry.update();
@@ -275,7 +275,7 @@ public class TurnTest extends LinearOpMode {
         launcherPush.setPosition(0.3);
         sleep(200);
         launcherPush.setPosition(0.7);
-        rotate((int)(18),0.05);
+        rotate((int)(4),0.05);
         while(launcher.getVelocity()/383.6*60 > -205){
             telemetry.addData("Velocity: ", launcher.getVelocity()/383.6*60);
             telemetry.update();
@@ -289,7 +289,7 @@ public class TurnTest extends LinearOpMode {
         telemetry.addData("Velocity: ", getAngle());
         telemetry.update();
 
-        rotate((int)(-getAngle()),0.1);
+        rotate((int)(0 - getAngle()),0.1);
         resetAngle();
 
 
@@ -741,6 +741,7 @@ public class TurnTest extends LinearOpMode {
      */
 
     protected void rotate(int degrees, double Power) {
+        resetAngle();
         stopMotors();
         double tgtPower = Power;
         // getAngle() returns + when rotating counter clockwise (left) and - when rotating clockwise (right).
