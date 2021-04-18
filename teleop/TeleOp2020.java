@@ -42,6 +42,7 @@ public class TeleOp2020 extends ThreadOpMode {
     // servos
     private Servo wobbleArm;
     private Servo launcherPush;  // moves the rings into the launching motor
+    private Servo ringGuard;
 
     double motorPower = 0.75;
     double launcherRPM = 250;
@@ -91,6 +92,7 @@ public class TeleOp2020 extends ThreadOpMode {
         // Player 2
         launcher = hardwareMap.get(DcMotorEx.class, "launcher");
         launcherPush = hardwareMap.get(Servo.class, "launcherPush");
+        ringGuard = hardwareMap.get(Servo.class, "ringGuard");
 
         wheelRack = hardwareMap.get(DcMotor.class, "wheelRack");
         belt = hardwareMap.get(DcMotor.class, "belt");
@@ -213,23 +215,21 @@ public class TeleOp2020 extends ThreadOpMode {
                 if (gamepad2.x && increase) {
                         //Increase launcher power
                         if(extend) {
-                            claw.setPower(0.4);
+                            claw.setPower(0.5);
                             try {
                                 sleep(500);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-                            claw.setPower(0);
                             extend = false;
                         }
                         else {
-                            claw.setPower(-0.4);
+                            claw.setPower(-0.5);
                             try {
                                 sleep(500);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-                            claw.setPower(0);
                             extend = true;
                         }
                         increase = false; // won't increase the motor power if the button is held down
@@ -265,6 +265,33 @@ public class TeleOp2020 extends ThreadOpMode {
                     }
                     increase = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad2.y) {
+                    increase = true; // releasing the bumper  will allow you to increase again
+                }
+            }
+        }));
+
+        // moves gard. SERVO
+        registerThread(new TaskThread(new TaskThread.Actions() {
+            boolean increase = true; //Outside of loop()
+            boolean lower = false;
+            @Override
+            public void loop() {
+                if (gamepad2.a && increase) {
+                    //Increase launcher power
+                    if(!lower) {
+                        while (ringGuard.getPosition() > 0.22) {
+                            ringGuard.setPosition(ringGuard.getPosition() - 0.020);
+                        }
+                        lower = true;
+                    }
+                    else {
+                        while (ringGuard.getPosition() < 0.70) {
+                            ringGuard.setPosition(ringGuard.getPosition() + 0.0020);
+                        }
+                        lower = false;
+                    }
+                    increase = false; // won't increase the motor power if the button is held down
+                } else if (!gamepad2.a) {
                     increase = true; // releasing the bumper  will allow you to increase again
                 }
             }
