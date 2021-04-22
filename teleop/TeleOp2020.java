@@ -14,9 +14,9 @@ import org.firstinspires.ftc.teamcode.thread.ThreadOpMode;
 
 import static java.lang.Thread.sleep;
 
-//Extend ThreadOpMode rather than OpMode
+//Extend ThreadOpMode rather than
 //Copied and Pasted TeleOp2019
-@TeleOp(name = "Real TeleOp 2020", group = "Threaded Opmode")
+@TeleOp(name = "TeleOp 2020", group = "Threaded Opmode")
 public class TeleOp2020 extends ThreadOpMode {
 
     /*
@@ -72,6 +72,7 @@ public class TeleOp2020 extends ThreadOpMode {
     static final double DRIVE_SPEED = .1;
     static final double TURN_SPEED = 0.5;
     static final double ringDistance = 39; // distance from origin to the location of ring detection (inch)
+    private boolean interacted = false;
 
     /*
     --------------------------------------
@@ -119,14 +120,12 @@ public class TeleOp2020 extends ThreadOpMode {
         /*// PID increasing
         registerThread(new TaskThread(new TaskThread.Actions() {
             boolean increase = true; //Outside of loop()
-
             @Override
             public void loop() {
                 if (gamepad2.y && increase) {
                     NEW_P += 1;
                     increase = false; // won't increase the motor power if the button is held down
                     NEW_P = Math.round(NEW_P * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
-
                     launcher.setVelocityPIDFCoefficients(NEW_P, NEW_I, NEW_D, 0);
                     //motorControllerEx.setPIDFCoefficients(motorIndex, DcMotor.RunMode.RUN_USING_ENCODER, pidNew);
                 } else if (!gamepad2.y)
@@ -170,7 +169,6 @@ public class TeleOp2020 extends ThreadOpMode {
                 }
             }
         }));
-
         //unextend claw
         registerThread(new TaskThread(new TaskThread.Actions() {
             int newArmDistance;
@@ -211,10 +209,19 @@ public class TeleOp2020 extends ThreadOpMode {
             boolean increase = true; //Outside of loop()
             boolean extend = false;
             @Override
+
             public void loop() {
-                if (gamepad2.x && increase) {
+                if(gamepad2.b){interacted = false;}
+
+                if (!interacted && gamepad2.x) {
+                    interacted = true;
+                } else if (!interacted) {
+                    claw.setPower(0);
+                } else {
+
+                    if (gamepad2.x && increase) {
                         //Increase launcher power
-                        if(extend) {
+                        if (extend) {
                             claw.setPower(0.5);
                             try {
                                 sleep(500);
@@ -222,8 +229,7 @@ public class TeleOp2020 extends ThreadOpMode {
                                 e.printStackTrace();
                             }
                             extend = false;
-                        }
-                        else {
+                        } else {
                             claw.setPower(-0.5);
                             try {
                                 sleep(500);
@@ -233,10 +239,11 @@ public class TeleOp2020 extends ThreadOpMode {
                             extend = true;
                         }
                         increase = false; // won't increase the motor power if the button is held down
-                } else if (!gamepad2.x) {
-                    increase = true; // releasing the bumper  will allow you to increase again
-                }
-            }
+                    } else if (!gamepad2.x) {
+                        increase = true; // releasing the bumper  will allow you to increase again
+                    }
+                } // interacted
+            } //loop
         }));
 
         // moves arm. GOD SERVO
@@ -270,7 +277,7 @@ public class TeleOp2020 extends ThreadOpMode {
             }
         }));
 
-        // moves gard. SERVO
+        // moves gard. GOD SERVO
         registerThread(new TaskThread(new TaskThread.Actions() {
             boolean increase = true; //Outside of loop()
             boolean lower = false;
@@ -280,13 +287,13 @@ public class TeleOp2020 extends ThreadOpMode {
                     //Increase launcher power
                     if(!lower) {
                         while (ringGuard.getPosition() > 0.22) {
-                            ringGuard.setPosition(ringGuard.getPosition() - 0.020);
+                            ringGuard.setPosition(ringGuard.getPosition() - 0.002);
                         }
                         lower = true;
                     }
                     else {
                         while (ringGuard.getPosition() < 0.70) {
-                            ringGuard.setPosition(ringGuard.getPosition() + 0.0020);
+                            ringGuard.setPosition(ringGuard.getPosition() + 0.002);
                         }
                         lower = false;
                     }
@@ -490,7 +497,7 @@ public class TeleOp2020 extends ThreadOpMode {
         telemetry.addData("Velocity: ", launcher.getVelocity() / 383.6 * 60);
         telemetry.update();
 
-        if (gamepad2.b) {
+        if (gamepad2.right_bumper) {
             launcherPush.setPosition(0.7);
             launcher.setVelocity(-launcherVelocity / 60 * 383.6);
             //stopMotors();
@@ -578,75 +585,75 @@ public class TeleOp2020 extends ThreadOpMode {
         double curSpeed; // Keep track of speed as we ramp
 
         // Ensure that the opmode is still active
-            // Determine new target position, and pass to motor controller
-            //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
-            newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-FrontLeftInches * COUNTS_PER_INCH);
-            newFrontRightTarget = frontRight.getCurrentPosition() + (int) (FrontRightInches * COUNTS_PER_INCH);
-            newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-BackLeftInches * COUNTS_PER_INCH);
-            newBackRightTarget = backRight.getCurrentPosition() + (int) (BackRightInches * COUNTS_PER_INCH);
+        // Determine new target position, and pass to motor controller
+        //DUE TO ORIENTATION OF MOTORS, LEFT MOTORS HAVE TO HAVE SIGN REVERSED FOR DISTANCES. maybe.
+        newFrontLeftTarget = frontLeft.getCurrentPosition() + (int) (-FrontLeftInches * COUNTS_PER_INCH);
+        newFrontRightTarget = frontRight.getCurrentPosition() + (int) (FrontRightInches * COUNTS_PER_INCH);
+        newBackLeftTarget = backLeft.getCurrentPosition() + (int) (-BackLeftInches * COUNTS_PER_INCH);
+        newBackRightTarget = backRight.getCurrentPosition() + (int) (BackRightInches * COUNTS_PER_INCH);
+        frontLeft.setTargetPosition(newFrontLeftTarget);
+        frontRight.setTargetPosition(newFrontRightTarget);
+        backLeft.setTargetPosition(newBackLeftTarget);
+        backRight.setTargetPosition(newBackRightTarget);
+
+        while (frontLeft.getTargetPosition() != newFrontLeftTarget) {
             frontLeft.setTargetPosition(newFrontLeftTarget);
+            try {
+                sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        while (frontRight.getTargetPosition() != newFrontRightTarget) {
             frontRight.setTargetPosition(newFrontRightTarget);
+            try {
+                sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        while (backLeft.getTargetPosition() != newBackLeftTarget) {
             backLeft.setTargetPosition(newBackLeftTarget);
+            try {
+                sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        while (backRight.getTargetPosition() != newBackRightTarget) {
             backRight.setTargetPosition(newBackRightTarget);
-
-            while (frontLeft.getTargetPosition() != newFrontLeftTarget) {
-                frontLeft.setTargetPosition(newFrontLeftTarget);
-                try {
-                    sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            try {
+                sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            while (frontRight.getTargetPosition() != newFrontRightTarget) {
-                frontRight.setTargetPosition(newFrontRightTarget);
-                try {
-                    sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            while (backLeft.getTargetPosition() != newBackLeftTarget) {
-                backLeft.setTargetPosition(newBackLeftTarget);
-                try {
-                    sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            while (backRight.getTargetPosition() != newBackRightTarget) {
-                backRight.setTargetPosition(newBackRightTarget);
-                try {
-                    sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+        }
 
 
-            // Turn On RUN_TO_POSITION
-            frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // Turn On RUN_TO_POSITION
+        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-            // reset the timeout time and start motion.
+        // reset the timeout time and start motion.
 
-            curSpeed = Math.abs(speed); // Make sure its positive
-            //curSpeed = Math.min(MINSPEED, speed);
+        curSpeed = Math.abs(speed); // Make sure its positive
+        //curSpeed = Math.min(MINSPEED, speed);
 
 
-            frontLeft.setPower(curSpeed);
-            backLeft.setPower(curSpeed);
-            frontRight.setPower(curSpeed);
-            backRight.setPower(curSpeed);
+        frontLeft.setPower(curSpeed);
+        backLeft.setPower(curSpeed);
+        frontRight.setPower(curSpeed);
+        backRight.setPower(curSpeed);
 
-            // keep looping while we are still active, and there is time left, and both motors are running.
-            // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
-            // its target position, the motion will stop.  This is "safer" in the event that the robot will
-            // always end the motion as soon as possible.
-            // However, if you require that BOTH motors have finished their moves before the robot continues
-            // onto the next step, use (isBusy() || isBusy()) in the loop test.
-            while ((frontLeft.isBusy() && frontRight.isBusy() && backLeft.isBusy()&& backRight.isBusy())) { //might need to change this to all being busy..
+        // keep looping while we are still active, and there is time left, and both motors are running.
+        // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
+        // its target position, the motion will stop.  This is "safer" in the event that the robot will
+        // always end the motion as soon as possible.
+        // However, if you require that BOTH motors have finished their moves before the robot continues
+        // onto the next step, use (isBusy() || isBusy()) in the loop test.
+        while ((frontLeft.isBusy() && frontRight.isBusy() && backLeft.isBusy()&& backRight.isBusy())) { //might need to change this to all being busy..
 /*
                     // Ramp up motor powers as needed
                     if (Math.abs(frontLeft.getCurrentPosition()- newFrontLeftTarget) < (0.3*Math.abs(newFrontLeftTarget)))
@@ -656,7 +663,6 @@ public class TeleOp2020 extends ThreadOpMode {
                             curSpeed -= SPEEDINCR;
                         }
                         else curSpeed = MINSPEED;
-
                     }
                     else {
                         // Ramp up motor powers as needed
@@ -664,40 +670,39 @@ public class TeleOp2020 extends ThreadOpMode {
                             curSpeed += SPEEDINCR;
                         } else curSpeed = speed;
                     }
-
  */
-                // And rewrite the motor speeds
-                frontLeft.setPower(curSpeed);
-                backLeft.setPower(curSpeed);
-                frontRight.setPower(curSpeed);
-                backRight.setPower(curSpeed);
+            // And rewrite the motor speeds
+            frontLeft.setPower(curSpeed);
+            backLeft.setPower(curSpeed);
+            frontRight.setPower(curSpeed);
+            backRight.setPower(curSpeed);
 
 
-                // Display it for the driver.
-                telemetry.addData("Path1", "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
-                telemetry.addData("Path2", "Running at %7d :%7d : %7d : %7d",
-                        frontLeft.getCurrentPosition(),
-                        frontRight.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition());
-                telemetry.update();
-            }
+            // Display it for the driver.
+            telemetry.addData("Path1", "Running to %7d :%7d : %7d : %7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
+            telemetry.addData("Path2", "Running at %7d :%7d : %7d : %7d",
+                    frontLeft.getCurrentPosition(),
+                    frontRight.getCurrentPosition(), backLeft.getCurrentPosition(), backRight.getCurrentPosition());
+            telemetry.update();
+        }
 
-            // Stop all motion;
-            frontLeft.setPower(0);
-            frontRight.setPower(0);
-            backLeft.setPower(0);
-            backRight.setPower(0);
+        // Stop all motion;
+        frontLeft.setPower(0);
+        frontRight.setPower(0);
+        backLeft.setPower(0);
+        backRight.setPower(0);
 
-            // Turn off RUN_TO_POSITION
-            frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // Turn off RUN_TO_POSITION
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-            try {
-                sleep(100);   // optional pause after each move
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        try {
+            sleep(100);   // optional pause after each move
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
     }
 
