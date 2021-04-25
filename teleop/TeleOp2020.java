@@ -105,7 +105,7 @@ public class TeleOp2020 extends ThreadOpMode {
         wobbleArm.setPosition(wobbleArm.getPosition());
 
         launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // change coefficients.
         final int motorIndex = ((DcMotorEx)launcher).getPortNumber();
@@ -133,126 +133,77 @@ public class TeleOp2020 extends ThreadOpMode {
             }*/
 
 
-/*
         //extend claw
         registerThread(new TaskThread(new TaskThread.Actions() {
             int newArmDistance;
             @Override
             public void loop() {
-                if (gamepad2.x && !extend) {
-                    newArmDistance = claw.getCurrentPosition() + (int) (armDistance);
-                    claw.setTargetPosition(newArmDistance);
-                    while (claw.getTargetPosition() != newArmDistance) {
-                        claw.setTargetPosition(newArmDistance);
-                        try {
-                            sleep(1);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    claw.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    double curSpeed = Math.abs(armSpeed); // Make sure its positive
-                    claw.setPower(curSpeed);
-                    while ((claw.isBusy())) {
-                        claw.setPower(curSpeed);
-                        telemetry.addData("Path1", "Running to %7d", newArmDistance);
-                        telemetry.addData("Path2", "Running at %7d",
-                                claw.getCurrentPosition());
-                        telemetry.update();
-                        if(gamepad2.a || gamepad2.y) {
-                            break;
-                        }
-                    }
+                if(gamepad2.left_bumper) {
                     claw.setPower(0);
-                    claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    extend = true;
                 }
             }
         }));
-        //unextend claw
+
         registerThread(new TaskThread(new TaskThread.Actions() {
-            int newArmDistance;
             @Override
             public void loop() {
-                if (gamepad2.a && extend) {
-                    newArmDistance = claw.getCurrentPosition() + (int) (-armDistance);
-                    claw.setTargetPosition(newArmDistance);
-                    while (claw.getTargetPosition() != newArmDistance) {
-                        claw.setTargetPosition(newArmDistance);
-                        try {
-                            sleep(1);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+                if (gamepad2.b) {
+                    launcherPush.setPosition(0.3);
+                    try {
+                        sleep(200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                    claw.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    double curSpeed = Math.abs(armSpeed); // Make sure its positive
-                    claw.setPower(curSpeed);
-                    while ((claw.isBusy())) {
-                        claw.setPower(curSpeed);
-                        telemetry.addData("Path1", "Running to %7d", newArmDistance);
-                        telemetry.addData("Path2", "Running at %7d",
-                                claw.getCurrentPosition());
-                        telemetry.update();
-                        if(gamepad2.x || gamepad2.y) {
-                            break;
-                        }
-                    }
-                    claw.setPower(0);
-                    claw.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    extend = false;
+                    launcherPush.setPosition(0.7);
                 }
             }
         }));
-*/
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean increase = true; //Outside of loop()
+            boolean increase1 = true; //Outside of loop()
             boolean extend = false;
             @Override
 
             public void loop() {
-                if(gamepad2.b){interacted = false;}
 
-                if (!interacted && gamepad2.x) {
-                    interacted = true;
-                } else if (!interacted) {
-                    claw.setPower(0);
-                } else {
-
-                    if (gamepad2.x && increase) {
+                    if (gamepad2.x && increase1) {
                         //Increase launcher power
                         if (extend) {
-                            claw.setPower(0.5);
+                            claw.setPower(0.4);
                             try {
                                 sleep(500);
                             } catch (InterruptedException e) {
+                                telemetry.addData("error","");
+                                telemetry.update();
                                 e.printStackTrace();
                             }
+                            claw.setPower(0.01);
                             extend = false;
                         } else {
-                            claw.setPower(-0.5);
+                            claw.setPower(-0.4);
                             try {
                                 sleep(500);
                             } catch (InterruptedException e) {
+                                telemetry.addData("error","");
+                                telemetry.update();
                                 e.printStackTrace();
                             }
+                            claw.setPower(-0.01);
                             extend = true;
                         }
-                        increase = false; // won't increase the motor power if the button is held down
+                        increase1 = false; // won't increase the motor power if the button is held down
                     } else if (!gamepad2.x) {
-                        increase = true; // releasing the bumper  will allow you to increase again
+                        increase1 = true; // releasing the bumper  will allow you to increase again
                     }
                 } // interacted
-            } //loop
         }));
 
         // moves arm. GOD SERVO
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean increase = true; //Outside of loop()
+            boolean increase2 = true; //Outside of loop()
             boolean lower = false;
             @Override
             public void loop() {
-                if (gamepad2.y && increase) {
+                if (gamepad2.y && increase2) {
                     //Increase launcher power
                     if(!lower) {
                         while (wobbleArm.getPosition() < 0.97) {
@@ -270,20 +221,20 @@ public class TeleOp2020 extends ThreadOpMode {
                         }
                         lower = false;
                     }
-                    increase = false; // won't increase the motor power if the button is held down
+                    increase2 = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad2.y) {
-                    increase = true; // releasing the bumper  will allow you to increase again
+                    increase2 = true; // releasing the bumper  will allow you to increase again
                 }
             }
         }));
 
         // moves gard. GOD SERVO
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean increase = true; //Outside of loop()
+            boolean increase3 = true; //Outside of loop()
             boolean lower = false;
             @Override
             public void loop() {
-                if (gamepad2.a && increase) {
+                if (gamepad2.a && increase3) {
                     //Increase launcher power
                     if(!lower) {
                         while (ringGuard.getPosition() > 0.22) {
@@ -297,9 +248,9 @@ public class TeleOp2020 extends ThreadOpMode {
                         }
                         lower = false;
                     }
-                    increase = false; // won't increase the motor power if the button is held down
+                    increase3 = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad2.a) {
-                    increase = true; // releasing the bumper  will allow you to increase again
+                    increase3 = true; // releasing the bumper  will allow you to increase again
                 }
             }
         }));
@@ -327,11 +278,11 @@ public class TeleOp2020 extends ThreadOpMode {
 
         // motor
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean increase = true; //Outside of loop()
+            boolean increase4 = true; //Outside of loop()
             boolean launch = false;
             @Override
             public void loop() {
-                if (gamepad2.left_trigger > 0.85 && increase) {
+                if (gamepad2.left_trigger > 0.85 && increase4) {
                     //Increase launcher power
                     if(!launch) {
                         launcher.setVelocity(-(launcherRPM/60 * 383.6));
@@ -341,9 +292,9 @@ public class TeleOp2020 extends ThreadOpMode {
                         launcher.setVelocity(0);
                         launch = false;
                     }
-                    increase = false; // won't increase the motor power if the button is held down
+                    increase4 = false; // won't increase the motor power if the button is held down
                 } else if (gamepad2.left_trigger < 0.85) {
-                    increase = true; // releasing the bumper  will allow you to increase again
+                    increase4 = true; // releasing the bumper  will allow you to increase again
                 }
             }
         }));
@@ -387,18 +338,18 @@ public class TeleOp2020 extends ThreadOpMode {
 
         // increasing
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean increase = true; //Outside of loop()
+            boolean increase5 = true; //Outside of loop()
 
             @Override
             public void loop() {
-                if (gamepad1.right_bumper && increase) {
+                if (gamepad1.right_bumper && increase5) {
                     motorPower += 0.25;
                     if (motorPower > 1) {
                         motorPower = 1;
                     }
-                    increase = false; // won't increase the motor power if the button is held down
+                    increase5 = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad1.right_bumper)
-                    increase = true; // releasing the bumper  will allow you to increase again
+                    increase5 = true; // releasing the bumper  will allow you to increase again
 
                 motorPower = Math.round(motorPower * 100.0) / 100.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
             }
@@ -435,18 +386,18 @@ public class TeleOp2020 extends ThreadOpMode {
 
         // increasing
         registerThread(new TaskThread(new TaskThread.Actions() {
-            boolean increase = true; //Outside of loop()
+            boolean increase6 = true; //Outside of loop()
 
             @Override
             public void loop() {
-                if (gamepad2.right_bumper && increase) {
+                if (gamepad2.right_bumper && increase6) {
                     launcherRPM += 10;
                     if (launcherRPM > 6000) {
                         launcherRPM = 6000;
                     }
-                    increase = false; // won't increase the motor power if the button is held down
+                    increase6 = false; // won't increase the motor power if the button is held down
                 } else if (!gamepad2.right_bumper)
-                    increase = true; // releasing the bumper  will allow you to increase again
+                    increase6 = true; // releasing the bumper  will allow you to increase again
 
                 launcherRPM = Math.round(launcherRPM * 1000.0) / 1000.0; // motor power is sometimes wacky and will have infinite decimals, rounding to fix that
             }
